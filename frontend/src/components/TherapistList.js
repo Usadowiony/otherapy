@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './TherapistList.css';
 
@@ -41,10 +41,24 @@ function TherapistList() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    const cursorPosition = e.target.selectionStart;
+    
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: value
+      };
+      
+      setTimeout(() => {
+        const element = document.getElementById(name);
+        if (element) {
+          element.focus();
+          element.setSelectionRange(cursorPosition, cursorPosition);
+        }
+      }, 0);
+      
+      return newData;
+    });
   };
 
   const handleTagChange = (tagId) => {
@@ -151,90 +165,97 @@ function TherapistList() {
     }
   };
 
-  const TherapistForm = ({ onSubmit, initialData = formData }) => (
-    <form onSubmit={onSubmit} className="therapist-form">
-      <div className="form-group">
-        <label htmlFor="firstName">Imię:</label>
-        <input
-          type="text"
-          id="firstName"
-          name="firstName"
-          value={initialData.firstName}
-          onChange={handleInputChange}
-          required
-        />
-      </div>
-      <div className="form-group">
-        <label htmlFor="lastName">Nazwisko:</label>
-        <input
-          type="text"
-          id="lastName"
-          name="lastName"
-          value={initialData.lastName}
-          onChange={handleInputChange}
-          required
-        />
-      </div>
-      <div className="form-group">
-        <label htmlFor="specialization">Specjalizacja:</label>
-        <input
-          type="text"
-          id="specialization"
-          name="specialization"
-          value={initialData.specialization}
-          onChange={handleInputChange}
-          required
-        />
-      </div>
-      <div className="form-group">
-        <label htmlFor="description">Opis:</label>
-        <textarea
-          id="description"
-          name="description"
-          value={initialData.description}
-          onChange={handleInputChange}
-        />
-      </div>
-      <div className="form-group">
-        <label>Tagi:</label>
-        <div className="tags-selection">
-          {tags.map(tag => (
-            <label key={tag.id} className="tag-checkbox">
-              <input
-                type="checkbox"
-                checked={initialData.selectedTags.includes(tag.id)}
-                onChange={() => handleTagChange(tag.id)}
-              />
-              {tag.name}
-            </label>
-          ))}
+  const TherapistForm = React.memo(({ onSubmit, initialData = formData }) => {
+    return (
+      <form onSubmit={onSubmit} className="therapist-form">
+        <div className="form-group">
+          <label htmlFor="firstName">Imię:</label>
+          <input
+            type="text"
+            id="firstName"
+            name="firstName"
+            value={initialData.firstName}
+            onChange={handleInputChange}
+            required
+          />
         </div>
-      </div>
-      <div className="form-buttons">
-        <button type="submit" className="submit-button">
-          {editingId ? 'Zapisz zmiany' : 'Dodaj terapeutę'}
-        </button>
-        {editingId && (
-          <button
-            type="button"
-            className="cancel-button"
-            onClick={() => {
-              setEditingId(null);
-              setFormData({
-                firstName: '',
-                lastName: '',
-                specialization: '',
-                description: '',
-                selectedTags: []
-              });
+        <div className="form-group">
+          <label htmlFor="lastName">Nazwisko:</label>
+          <input
+            type="text"
+            id="lastName"
+            name="lastName"
+            value={initialData.lastName}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="specialization">Specjalizacja:</label>
+          <input
+            type="text"
+            id="specialization"
+            name="specialization"
+            value={initialData.specialization}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="description">Opis:</label>
+          <textarea
+            id="description"
+            name="description"
+            value={initialData.description}
+            onChange={handleInputChange}
+            onSelect={(e) => {
+              // Zachowujemy pozycję kursora podczas zaznaczania tekstu
+              const cursorPosition = e.target.selectionStart;
+              e.target.setSelectionRange(cursorPosition, cursorPosition);
             }}
-          >
-            Anuluj
+          />
+        </div>
+        <div className="form-group">
+          <label>Tagi:</label>
+          <div className="tags-selection">
+            {tags.map(tag => (
+              <label key={tag.id} className="tag-checkbox">
+                <input
+                  type="checkbox"
+                  checked={initialData.selectedTags.includes(tag.id)}
+                  onChange={() => handleTagChange(tag.id)}
+                />
+                {tag.name}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="form-buttons">
+          <button type="submit" className="submit-button">
+            {editingId ? 'Zapisz zmiany' : 'Dodaj terapeutę'}
           </button>
-        )}
-      </div>
-    </form>
-  );
+          {editingId && (
+            <button
+              type="button"
+              className="cancel-button"
+              onClick={() => {
+                setEditingId(null);
+                setFormData({
+                  firstName: '',
+                  lastName: '',
+                  specialization: '',
+                  description: '',
+                  selectedTags: []
+                });
+              }}
+            >
+              Anuluj
+            </button>
+          )}
+        </div>
+      </form>
+    );
+  });
 
   return (
     <div className="therapist-list">
@@ -259,7 +280,10 @@ function TherapistList() {
 
       <div className="therapists-grid">
         {therapists.map(therapist => (
-          <div key={therapist.id} className="therapist-card">
+          <div 
+            key={therapist.id} 
+            className={`therapist-card ${editingId === therapist.id ? 'editing' : ''}`}
+          >
             {editingId === therapist.id ? (
               <TherapistForm onSubmit={handleUpdate} initialData={formData} />
             ) : (

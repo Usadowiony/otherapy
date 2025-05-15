@@ -28,10 +28,22 @@ function AddTherapist({ onTherapistAdded }) {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    const activeElement = document.activeElement;
+    const selectionStart = activeElement.selectionStart;
+    const selectionEnd = activeElement.selectionEnd;
+
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+
+    // Przywracamy focus i pozycję kursora
+    if (activeElement) {
+      activeElement.focus();
+      if (activeElement.setSelectionRange) {
+        activeElement.setSelectionRange(selectionStart, selectionEnd);
+      }
+    }
   };
 
   const handleTagToggle = (tagId) => {

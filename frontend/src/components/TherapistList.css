@@ -38,7 +38,7 @@
   margin-bottom: 30px;
 }
 
-.therapist-grid {
+.therapists-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
@@ -46,11 +46,12 @@
 
 .therapist-card {
   background: white;
+  padding: 25px;
   border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .therapist-card.editing {
@@ -59,84 +60,51 @@
   border: 2px solid #3498db;
 }
 
-.therapist-info {
-  margin-bottom: 15px;
+.therapist-card h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.2em;
 }
 
-.therapist-info h3 {
-  margin: 0 0 10px 0;
-  color: #2c3e50;
+.therapist-card p {
+  margin: 0;
+  color: #666;
 }
 
 .therapist-tags {
-  margin-top: 15px;
-}
-
-.therapist-tags h4 {
-  margin: 0 0 10px 0;
-  color: #666;
-}
-
-.tags-container {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 10px;
+  margin: 10px 0;
 }
 
 .tag {
-  background-color: #e1f5fe;
-  padding: 4px 8px;
+  background: #e1f5fe;
+  padding: 4px 12px;
   border-radius: 15px;
-  font-size: 14px;
+  font-size: 13px;
+  color: #2980b9;
 }
 
-.remove-tag {
-  background: none;
-  border: none;
-  color: #666;
-  cursor: pointer;
-  padding: 0 4px;
-  font-size: 16px;
-}
-
-.remove-tag:hover {
-  color: #ff4444;
-}
-
-.available-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.add-tag {
-  background-color: #f0f0f0;
-  border: none;
-  padding: 4px 8px;
-  border-radius: 15px;
-  font-size: 14px;
-  cursor: pointer;
-  color: #666;
-}
-
-.add-tag:hover {
-  background-color: #e0e0e0;
-}
-
-.button-group {
+.therapist-actions {
   display: flex;
   gap: 10px;
-  margin-top: 15px;
+  margin-top: auto;
+  padding-top: 15px;
+}
+
+.edit-button, .delete-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  flex: 1;
 }
 
 .edit-button {
   background-color: #3498db;
   color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
 }
 
 .edit-button:hover {
@@ -146,99 +114,115 @@
 .delete-button {
   background-color: #e74c3c;
   color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
 }
 
 .delete-button:hover {
   background-color: #c0392b;
 }
 
-.save-button {
-  background-color: #2ecc71;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.save-button:hover {
-  background-color: #27ae60;
-}
-
-.cancel-button {
-  background-color: #95a5a6;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.cancel-button:hover {
-  background-color: #7f8c8d;
+.therapist-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .form-group label {
-  display: block;
-  margin-bottom: 5px;
+  font-weight: 500;
   color: #666;
 }
 
 .form-group input,
 .form-group textarea {
-  width: 100%;
-  padding: 8px;
+  padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .form-group textarea {
-  resize: vertical;
   min-height: 100px;
+  resize: vertical;
 }
 
 .tags-selection {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 5px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 4px;
 }
 
-.tag-button {
-  background-color: #f0f0f0;
-  border: none;
+.tag-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 12px;
+  background: white;
+  border: 1px solid #ddd;
   border-radius: 15px;
-  font-size: 14px;
   cursor: pointer;
-  color: #666;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
-.tag-button:hover {
-  background-color: #e0e0e0;
+.tag-checkbox:hover {
+  background: #f0f0f0;
 }
 
-.tag-button.selected {
-  background-color: #3498db;
+.tag-checkbox input[type="checkbox"] {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.submit-button, .cancel-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  flex: 1;
+}
+
+.submit-button {
+  background-color: #2ecc71;
   color: white;
 }
 
+.submit-button:hover {
+  background-color: #27ae60;
+}
+
+.cancel-button {
+  background-color: #95a5a6;
+  color: white;
+}
+
+.cancel-button:hover {
+  background-color: #7f8c8d;
+}
+
 .error {
-  color: #ff4444;
-  margin-bottom: 20px;
+  color: #e74c3c;
   padding: 10px;
-  background-color: #ffeeee;
+  background: #fde8e8;
   border-radius: 4px;
+  margin-bottom: 20px;
 }
 
 .specialization {
@@ -257,44 +241,4 @@
   text-align: center;
   padding: 20px;
   color: #666;
-}
-
-.therapist-form {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.form-buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.submit-button {
-  background-color: #2ecc71;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.submit-button:hover {
-  background-color: #27ae60;
-}
-
-.tag-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  background: #f0f0f0;
-  border-radius: 15px;
-  cursor: pointer;
-}
-
-.tag-checkbox:hover {
-  background: #e0e0e0;
 }
