@@ -42,21 +42,37 @@ router.post('/:tagId/therapists/:therapistId', async (req, res) => {
   }
 });
 
-// DELETE /tags/:tagId/therapists/:therapistId - usuń tag z terapeuty
-router.delete('/:tagId/therapists/:therapistId', async (req, res) => {
+// DELETE /tags/:id - usuń tag
+router.delete('/:id', async (req, res) => {
   try {
-    const { tagId, therapistId } = req.params;
-    const therapist = await Therapist.findByPk(therapistId);
-    const tag = await Tag.findByPk(tagId);
+    const tagId = req.params.id;
     
-    if (!therapist || !tag) {
-      return res.status(404).json({ error: 'Terapeuta lub tag nie znaleziony' });
+    // Najpierw sprawdź, czy tag jest używany przez jakichś terapeutów
+    const therapistsWithTag = await Therapist.findAll({
+      include: [{
+        model: Tag,
+        where: { id: tagId }
+      }]
+    });
+
+    if (therapistsWithTag.length > 0) {
+      return res.status(400).json({
+        message: 'Nie można usunąć tagu, ponieważ jest używany przez terapeutów'
+      });
     }
 
-    await therapist.removeTag(tag);
-    res.status(204).send();
+    // Jeśli tag nie jest używany, usuń go
+    await Tag.destroy({
+      where: { id: tagId }
+    });
+
+    res.status(200).json({ message: 'Tag został usunięty' });
   } catch (error) {
-    res.status(500).json({ error: 'Błąd podczas usuwania tagu z terapeuty' });
+    console.error('Błąd podczas usuwania tagu:', error);
+    res.status(500).json({
+      message: 'Wystąpił błąd podczas usuwania tagu',
+      error: error.message
+    });
   }
 });
 
