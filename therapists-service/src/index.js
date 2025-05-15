@@ -18,10 +18,16 @@ app.get('/', (req, res) => {
 app.use('/therapists', therapistRoutes);
 app.use('/tags', tagRoutes);
 
+// Error handling
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Wystąpił błąd serwera' });
+});
+
 // Synchronizacja bazy i uruchomienie serwera
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 sequelize.sync().then(() => {
   app.listen(PORT, () => {
-    console.log(`Serwer działa na http://localhost:${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
   });
 });

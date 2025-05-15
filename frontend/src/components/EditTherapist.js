@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import './AddTherapist.css';
+import './EditTherapist.css';
 
-function AddTherapist({ onTherapistAdded }) {
+function EditTherapist({ therapist, onEditComplete, onCancel }) {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    specialization: '',
-    description: ''
+    firstName: therapist.firstName,
+    lastName: therapist.lastName,
+    specialization: therapist.specialization,
+    description: therapist.description || ''
   });
   const [tags, setTags] = useState([]);
-  const [selectedTags, setSelectedTags] = useState([]);
+  const [selectedTags, setSelectedTags] = useState(
+    therapist.Tags ? therapist.Tags.map(tag => tag.id) : []
+  );
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -47,47 +49,39 @@ function AddTherapist({ onTherapistAdded }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Najpierw dodaj terapeutę
-      const response = await axios.post('http://localhost:3001/therapists', formData);
-      const therapistId = response.data.id;
+      // Aktualizuj dane terapeuty
+      await axios.put(`http://localhost:3001/therapists/${therapist.id}`, formData);
 
-      // Dodaj tylko wybrane tagi
-      if (selectedTags.length > 0) {
-        try {
-          await Promise.all(
-            selectedTags.map(tagId => 
-              axios.post(`http://localhost:3001/therapists/${therapistId}/tags`, { tagId })
-            )
-          );
-        } catch (tagError) {
-          console.error('Błąd podczas dodawania tagów:', tagError);
-          // Kontynuuj mimo błędu tagów - terapeuta został już dodany
-        }
-      }
+      // Pobierz aktualne tagi terapeuty
+      const currentTags = therapist.Tags ? therapist.Tags.map(tag => tag.id) : [];
+      
+      // Usuń tagi, które zostały odznaczone
+      const tagsToRemove = currentTags.filter(tagId => !selectedTags.includes(tagId));
+      await Promise.all(
+        tagsToRemove.map(tagId =>
+          axios.delete(`http://localhost:3001/therapists/${therapist.id}/tags/${tagId}`)
+        )
+      );
 
-      // Wyczyść formularz
-      setFormData({
-        firstName: '',
-        lastName: '',
-        specialization: '',
-        description: ''
-      });
-      setSelectedTags([]);
-      setError(null);
+      // Dodaj nowe tagi
+      const tagsToAdd = selectedTags.filter(tagId => !currentTags.includes(tagId));
+      await Promise.all(
+        tagsToAdd.map(tagId =>
+          axios.post(`http://localhost:3001/therapists/${therapist.id}/tags`, { tagId })
+        )
+      );
 
-      // Powiadom komponent nadrzędny
-      if (onTherapistAdded) {
-        onTherapistAdded();
+      if (onEditComplete) {
+        onEditComplete();
       }
     } catch (err) {
-      console.error('Pełny błąd:', err);
-      setError('Błąd podczas dodawania terapeuty: ' + (err.response?.data?.message || err.message));
+      setError('Błąd podczas aktualizacji terapeuty: ' + (err.response?.data?.message || err.message));
     }
   };
 
   return (
-    <div className="add-therapist">
-      <h2>Dodaj Nowego Terapeutę</h2>
+    <div className="edit-therapist">
+      <h2>Edytuj Terapeutę</h2>
       {error && <div className="error">{error}</div>}
       
       <form onSubmit={handleSubmit}>
@@ -153,10 +147,13 @@ function AddTherapist({ onTherapistAdded }) {
           </div>
         </div>
 
-        <button type="submit" className="submit-button">Dodaj Terapeutę</button>
+        <div className="button-group">
+          <button type="submit" className="save-button">Zapisz zmiany</button>
+          <button type="button" className="cancel-button" onClick={onCancel}>Anuluj</button>
+        </div>
       </form>
     </div>
   );
 }
 
-export default AddTherapist;
+export default EditTherapist;

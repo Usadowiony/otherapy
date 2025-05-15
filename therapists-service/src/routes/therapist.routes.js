@@ -7,71 +7,94 @@ const Tag = require('../models/tag.model');
 router.get('/', async (req, res) => {
   try {
     const therapists = await Therapist.findAll({
-      include: [{
-        model: Tag,
-        through: { attributes: [] } // nie zwracaj danych z tabeli pośredniej
-      }]
+      include: [Tag]
     });
     res.json(therapists);
   } catch (error) {
-    res.status(500).json({ error: 'Błąd podczas pobierania terapeutów' });
+    res.status(500).json({ message: error.message });
   }
 });
 
 // POST /therapists - dodaj nowego terapeutę
 router.post('/', async (req, res) => {
   try {
-    const { firstName, lastName, specialization, description } = req.body;
-    const therapist = await Therapist.create({
-      firstName,
-      lastName,
-      specialization,
-      description
-    });
+    const therapist = await Therapist.create(req.body);
     res.status(201).json(therapist);
   } catch (error) {
-    res.status(500).json({ error: 'Błąd podczas dodawania terapeuty' });
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Dodaj tag do terapeuty
+router.post('/:therapistId/tags', async (req, res) => {
+  try {
+    const { therapistId } = req.params;
+    const { tagId } = req.body;
+
+    const therapist = await Therapist.findByPk(therapistId);
+    if (!therapist) {
+      return res.status(404).json({ message: 'Terapeuta nie znaleziony' });
+    }
+
+    const tag = await Tag.findByPk(tagId);
+    if (!tag) {
+      return res.status(404).json({ message: 'Tag nie znaleziony' });
+    }
+
+    await therapist.addTag(tag);
+    res.status(200).json({ message: 'Tag dodany pomyślnie' });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Usuń tag z terapeuty
+router.delete('/:therapistId/tags/:tagId', async (req, res) => {
+  try {
+    const { therapistId, tagId } = req.params;
+
+    const therapist = await Therapist.findByPk(therapistId);
+    if (!therapist) {
+      return res.status(404).json({ message: 'Terapeuta nie znaleziony' });
+    }
+
+    const tag = await Tag.findByPk(tagId);
+    if (!tag) {
+      return res.status(404).json({ message: 'Tag nie znaleziony' });
+    }
+
+    await therapist.removeTag(tag);
+    res.status(200).json({ message: 'Tag usunięty pomyślnie' });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 });
 
 // PUT /therapists/:id - aktualizuj terapeutę
 router.put('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { firstName, lastName, specialization, description } = req.body;
-    const therapist = await Therapist.findByPk(id);
-    
+    const therapist = await Therapist.findByPk(req.params.id);
     if (!therapist) {
-      return res.status(404).json({ error: 'Terapeuta nie znaleziony' });
+      return res.status(404).json({ message: 'Terapeuta nie znaleziony' });
     }
-
-    await therapist.update({
-      firstName,
-      lastName,
-      specialization,
-      description
-    });
-
+    await therapist.update(req.body);
     res.json(therapist);
   } catch (error) {
-    res.status(500).json({ error: 'Błąd podczas aktualizacji terapeuty' });
+    res.status(400).json({ message: error.message });
   }
 });
 
 // DELETE /therapists/:id - usuń terapeutę
 router.delete('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const therapist = await Therapist.findByPk(id);
-    
+    const therapist = await Therapist.findByPk(req.params.id);
     if (!therapist) {
-      return res.status(404).json({ error: 'Terapeuta nie znaleziony' });
+      return res.status(404).json({ message: 'Terapeuta nie znaleziony' });
     }
-
     await therapist.destroy();
-    res.status(204).send();
+    res.json({ message: 'Terapeuta usunięty pomyślnie' });
   } catch (error) {
-    res.status(500).json({ error: 'Błąd podczas usuwania terapeuty' });
+    res.status(500).json({ message: error.message });
   }
 });
 
