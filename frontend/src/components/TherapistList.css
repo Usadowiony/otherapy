@@ -53,3 +53,58 @@
   padding: 20px;
   color: #e74c3c;
 }
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.button-group button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.button-group button:first-child {
+  background-color: #3498db;
+  color: white;
+}
+
+.button-group button:last-child {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.edit-form .form-group {
+  margin-bottom: 15px;
+}
+
+.edit-form .form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: #666;
+  font-size: 14px;
+}
+
+.edit-form .form-group input,
+.edit-form .form-group textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.edit-form .form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
