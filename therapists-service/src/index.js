@@ -1,14 +1,20 @@
 const express = require('express');
+const cors = require('cors');
 const sequelize = require('./db');
 const Therapist = require('./therapist.model');
+const therapistRoutes = require('./routes/therapist.routes');
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 // Endpoint testowy
 app.get('/', (req, res) => {
   res.send('Therapists Service działa!');
 });
+
+// Dodaj routing terapeutów
+app.use('/therapists', therapistRoutes);
 
 // Synchronizacja bazy i uruchomienie serwera
 const PORT = 3001;
