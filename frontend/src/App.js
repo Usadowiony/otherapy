@@ -1,6 +1,7 @@
 import React from 'react';
 import TherapistList from './components/TherapistList';
 import AddTherapist from './components/AddTherapist';
+import TagManager from './components/TagManager';
 import './App.css';
 
 function App() {
@@ -10,7 +11,8 @@ function App() {
         <h1>System Terapeutów</h1>
       </header>
       <main>
-        <AddTherapist onTherapistAdded={(therapist) => {
+        <TagManager />
+        <AddTherapist onTherapistAdded={() => {
           // Odśwież listę terapeutów
           window.location.reload();
         }} />

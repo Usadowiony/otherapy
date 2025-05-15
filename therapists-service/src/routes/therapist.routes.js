@@ -1,11 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const Therapist = require('../therapist.model');
+const Therapist = require('../models/therapist.model');
+const Tag = require('../models/tag.model');
 
 // GET /therapists - pobierz wszystkich terapeutów
 router.get('/', async (req, res) => {
   try {
-    const therapists = await Therapist.findAll();
+    const therapists = await Therapist.findAll({
+      include: [{
+        model: Tag,
+        through: { attributes: [] } // nie zwracaj danych z tabeli pośredniej
+      }]
+    });
     res.json(therapists);
   } catch (error) {
     res.status(500).json({ error: 'Błąd podczas pobierania terapeutów' });
