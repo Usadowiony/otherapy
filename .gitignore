@@ -1,0 +1,38 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Baza danych SQLite
+*.sqlite
+*.sqlite3
+*.db
+
+# Środowisko
+.env
+.env.local
+.env.*.local
+
+# Logi
+logs
+*.log
+
+# Katalogi systemowe
+.DS_Store
+Thumbs.db
+
+# Katalogi IDE/edytorów
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Katalogi build/kompilacji
+dist/
+build/
+coverage/
+
+# Pliki tymczasowe
+*.tmp
+*.temp
