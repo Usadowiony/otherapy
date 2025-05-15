@@ -5,8 +5,16 @@ import './TherapistList.css';
 function TherapistList() {
   const [therapists, setTherapists] = useState([]);
   const [tags, setTags] = useState([]);
-  const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    specialization: '',
+    description: '',
+    selectedTags: []
+  });
 
   useEffect(() => {
     fetchTherapists();
@@ -31,209 +39,260 @@ function TherapistList() {
     }
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleTagChange = (tagId) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedTags: prev.selectedTags.includes(tagId)
+        ? prev.selectedTags.filter(id => id !== tagId)
+        : [...prev.selectedTags, tagId]
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post('http://localhost:3001/therapists', {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        specialization: formData.specialization,
+        description: formData.description
+      });
+
+      const therapistId = response.data.id;
+
+      // Add selected tags
+      if (formData.selectedTags.length > 0) {
+        await Promise.all(
+          formData.selectedTags.map(tagId =>
+            axios.post(`http://localhost:3001/therapists/${therapistId}/tags`, { tagId })
+          )
+        );
+      }
+
+      setFormData({
+        firstName: '',
+        lastName: '',
+        specialization: '',
+        description: '',
+        selectedTags: []
+      });
+      setShowAddForm(false);
+      fetchTherapists();
+    } catch (err) {
+      setError('Błąd podczas dodawania terapeuty');
+    }
+  };
+
   const handleDelete = async (id) => {
     if (window.confirm('Czy na pewno chcesz usunąć tego terapeutę?')) {
       try {
         await axios.delete(`http://localhost:3001/therapists/${id}`);
-        setTherapists(therapists.filter(t => t.id !== id));
+        fetchTherapists();
       } catch (err) {
         setError('Błąd podczas usuwania terapeuty');
       }
     }
   };
 
-  const handleEdit = (id) => {
-    setEditingId(id);
-  };
-
-  const handleCancel = () => {
-    setEditingId(null);
-  };
-
-  const handleSave = async (id, formData, selectedTags) => {
-    try {
-      // Aktualizuj dane terapeuty
-      await axios.put(`http://localhost:3001/therapists/${id}`, formData);
-
-      // Pobierz aktualne tagi terapeuty
-      const therapist = therapists.find(t => t.id === id);
-      const currentTags = therapist.Tags ? therapist.Tags.map(tag => tag.id) : [];
-      
-      // Usuń tagi, które zostały odznaczone
-      const tagsToRemove = currentTags.filter(tagId => !selectedTags.includes(tagId));
-      await Promise.all(
-        tagsToRemove.map(tagId =>
-          axios.delete(`http://localhost:3001/therapists/${id}/tags/${tagId}`)
-        )
-      );
-
-      // Dodaj nowe tagi
-      const tagsToAdd = selectedTags.filter(tagId => !currentTags.includes(tagId));
-      await Promise.all(
-        tagsToAdd.map(tagId =>
-          axios.post(`http://localhost:3001/therapists/${id}/tags`, { tagId })
-        )
-      );
-
-      setEditingId(null);
-      fetchTherapists();
-    } catch (err) {
-      setError('Błąd podczas aktualizacji terapeuty: ' + (err.response?.data?.message || err.message));
-    }
-  };
-
-  const TherapistCard = ({ therapist }) => {
-    const [formData, setFormData] = useState({
+  const handleEdit = (therapist) => {
+    setEditingId(therapist.id);
+    setFormData({
       firstName: therapist.firstName,
       lastName: therapist.lastName,
       specialization: therapist.specialization,
-      description: therapist.description || ''
+      description: therapist.description || '',
+      selectedTags: therapist.Tags?.map(tag => tag.id) || []
     });
-    const [selectedTags, setSelectedTags] = useState(
-      therapist.Tags ? therapist.Tags.map(tag => tag.id) : []
-    );
+  };
 
-    const handleInputChange = (e) => {
-      const { name, value } = e.target;
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    };
-
-    const handleTagToggle = (tagId) => {
-      setSelectedTags(prev => {
-        if (prev.includes(tagId)) {
-          return prev.filter(id => id !== tagId);
-        } else {
-          return [...prev, tagId];
-        }
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.put(`http://localhost:3001/therapists/${editingId}`, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        specialization: formData.specialization,
+        description: formData.description
       });
-    };
 
-    if (editingId === therapist.id) {
-      return (
-        <div className="therapist-card editing">
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            handleSave(therapist.id, formData, selectedTags);
-          }}>
-            <div className="form-group">
-              <label htmlFor={`firstName-${therapist.id}`}>Imię:</label>
-              <input
-                type="text"
-                id={`firstName-${therapist.id}`}
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
+      // Update tags
+      const currentTags = therapists.find(t => t.id === editingId)?.Tags?.map(t => t.id) || [];
+      const tagsToAdd = formData.selectedTags.filter(id => !currentTags.includes(id));
+      const tagsToRemove = currentTags.filter(id => !formData.selectedTags.includes(id));
 
-            <div className="form-group">
-              <label htmlFor={`lastName-${therapist.id}`}>Nazwisko:</label>
-              <input
-                type="text"
-                id={`lastName-${therapist.id}`}
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
+      await Promise.all([
+        ...tagsToAdd.map(tagId =>
+          axios.post(`http://localhost:3001/therapists/${editingId}/tags`, { tagId })
+        ),
+        ...tagsToRemove.map(tagId =>
+          axios.delete(`http://localhost:3001/therapists/${editingId}/tags/${tagId}`)
+        )
+      ]);
 
-            <div className="form-group">
-              <label htmlFor={`specialization-${therapist.id}`}>Specjalizacja:</label>
-              <input
-                type="text"
-                id={`specialization-${therapist.id}`}
-                name="specialization"
-                value={formData.specialization}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor={`description-${therapist.id}`}>Opis:</label>
-              <textarea
-                id={`description-${therapist.id}`}
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Tagi:</label>
-              <div className="tags-selection">
-                {tags.map(tag => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    className={`tag-button ${selectedTags.includes(tag.id) ? 'selected' : ''}`}
-                    onClick={() => handleTagToggle(tag.id)}
-                  >
-                    {tag.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="button-group">
-              <button type="submit" className="save-button">Zapisz</button>
-              <button type="button" className="cancel-button" onClick={handleCancel}>Anuluj</button>
-            </div>
-          </form>
-        </div>
-      );
+      setEditingId(null);
+      setFormData({
+        firstName: '',
+        lastName: '',
+        specialization: '',
+        description: '',
+        selectedTags: []
+      });
+      fetchTherapists();
+    } catch (err) {
+      setError('Błąd podczas aktualizacji terapeuty');
     }
+  };
 
-    return (
-      <div className="therapist-card">
-        <div className="therapist-info">
-          <h3>{therapist.firstName} {therapist.lastName}</h3>
-          <p><strong>Specjalizacja:</strong> {therapist.specialization}</p>
-          {therapist.description && <p><strong>Opis:</strong> {therapist.description}</p>}
-        </div>
-        
-        <div className="therapist-tags">
-          <h4>Tagi:</h4>
-          <div className="tags-container">
-            {therapist.Tags?.map(tag => (
-              <span key={tag.id} className="tag">
-                {tag.name}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="button-group">
-          <button 
-            className="edit-button"
-            onClick={() => handleEdit(therapist.id)}
-          >
-            Edytuj
-          </button>
-          <button 
-            className="delete-button"
-            onClick={() => handleDelete(therapist.id)}
-          >
-            Usuń
-          </button>
+  const TherapistForm = ({ onSubmit, initialData = formData }) => (
+    <form onSubmit={onSubmit} className="therapist-form">
+      <div className="form-group">
+        <label htmlFor="firstName">Imię:</label>
+        <input
+          type="text"
+          id="firstName"
+          name="firstName"
+          value={initialData.firstName}
+          onChange={handleInputChange}
+          required
+        />
+      </div>
+      <div className="form-group">
+        <label htmlFor="lastName">Nazwisko:</label>
+        <input
+          type="text"
+          id="lastName"
+          name="lastName"
+          value={initialData.lastName}
+          onChange={handleInputChange}
+          required
+        />
+      </div>
+      <div className="form-group">
+        <label htmlFor="specialization">Specjalizacja:</label>
+        <input
+          type="text"
+          id="specialization"
+          name="specialization"
+          value={initialData.specialization}
+          onChange={handleInputChange}
+          required
+        />
+      </div>
+      <div className="form-group">
+        <label htmlFor="description">Opis:</label>
+        <textarea
+          id="description"
+          name="description"
+          value={initialData.description}
+          onChange={handleInputChange}
+        />
+      </div>
+      <div className="form-group">
+        <label>Tagi:</label>
+        <div className="tags-selection">
+          {tags.map(tag => (
+            <label key={tag.id} className="tag-checkbox">
+              <input
+                type="checkbox"
+                checked={initialData.selectedTags.includes(tag.id)}
+                onChange={() => handleTagChange(tag.id)}
+              />
+              {tag.name}
+            </label>
+          ))}
         </div>
       </div>
-    );
-  };
+      <div className="form-buttons">
+        <button type="submit" className="submit-button">
+          {editingId ? 'Zapisz zmiany' : 'Dodaj terapeutę'}
+        </button>
+        {editingId && (
+          <button
+            type="button"
+            className="cancel-button"
+            onClick={() => {
+              setEditingId(null);
+              setFormData({
+                firstName: '',
+                lastName: '',
+                specialization: '',
+                description: '',
+                selectedTags: []
+              });
+            }}
+          >
+            Anuluj
+          </button>
+        )}
+      </div>
+    </form>
+  );
 
   return (
     <div className="therapist-list">
-      <h2>Lista Terapeutów</h2>
+      <div className="therapist-list-header">
+        <h2>Lista Terapeutów</h2>
+        <button
+          className="add-button"
+          onClick={() => setShowAddForm(!showAddForm)}
+        >
+          {showAddForm ? 'Anuluj' : 'Dodaj Terapeutę'}
+        </button>
+      </div>
+
       {error && <div className="error">{error}</div>}
-      
-      {therapists.map(therapist => (
-        <TherapistCard key={therapist.id} therapist={therapist} />
-      ))}
+
+      {showAddForm && !editingId && (
+        <div className="add-therapist-section">
+          <h3>Dodaj Nowego Terapeutę</h3>
+          <TherapistForm onSubmit={handleSubmit} />
+        </div>
+      )}
+
+      <div className="therapists-grid">
+        {therapists.map(therapist => (
+          <div key={therapist.id} className="therapist-card">
+            {editingId === therapist.id ? (
+              <TherapistForm onSubmit={handleUpdate} initialData={formData} />
+            ) : (
+              <>
+                <h3>{therapist.firstName} {therapist.lastName}</h3>
+                <p><strong>Specjalizacja:</strong> {therapist.specialization}</p>
+                {therapist.description && (
+                  <p><strong>Opis:</strong> {therapist.description}</p>
+                )}
+                <div className="therapist-tags">
+                  {therapist.Tags?.map(tag => (
+                    <span key={tag.id} className="tag">{tag.name}</span>
+                  ))}
+                </div>
+                <div className="therapist-actions">
+                  <button
+                    className="edit-button"
+                    onClick={() => handleEdit(therapist)}
+                  >
+                    Edytuj
+                  </button>
+                  <button
+                    className="delete-button"
+                    onClick={() => handleDelete(therapist.id)}
+                  >
+                    Usuń
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

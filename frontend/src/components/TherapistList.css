@@ -10,6 +10,34 @@
   color: #333;
 }
 
+.therapist-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.add-button {
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.add-button:hover {
+  background-color: #27ae60;
+}
+
+.add-therapist-section {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
 .therapist-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -229,4 +257,44 @@
   text-align: center;
   padding: 20px;
   color: #666;
+}
+
+.therapist-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.submit-button {
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.submit-button:hover {
+  background-color: #27ae60;
+}
+
+.tag-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: #f0f0f0;
+  border-radius: 15px;
+  cursor: pointer;
+}
+
+.tag-checkbox:hover {
+  background: #e0e0e0;
 }

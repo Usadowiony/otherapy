@@ -39,17 +39,38 @@
 
 .app {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f5f6fa;
 }
 
 .app-header {
-  background-color: white;
-  padding: 15px 20px;
+  background: white;
+  padding: 20px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .app-header h1 {
   margin: 0;
   color: #2c3e50;
-  font-size: 20px;
+}
+
+.admin-toggle {
+  padding: 8px 16px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.admin-toggle:hover {
+  background-color: #2980b9;
+}
+
+main {
+  padding: 20px;
 }

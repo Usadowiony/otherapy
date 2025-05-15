@@ -1,22 +1,24 @@
-import React from 'react';
-import TherapistList from './components/TherapistList';
-import AddTherapist from './components/AddTherapist';
-import TagManager from './components/TagManager';
+import React, { useState } from 'react';
+import AdminPanel from './components/AdminPanel';
+import Quiz from './components/Quiz';
 import './App.css';
 
 function App() {
+  const [isAdmin, setIsAdmin] = useState(false); // W przyszłości można to połączyć z autentykacją
+
   return (
     <div className="app">
       <header className="app-header">
-        <h1>System Terapeutów</h1>
+        <h1>otherapy</h1>
+        <button 
+          className="admin-toggle"
+          onClick={() => setIsAdmin(!isAdmin)}
+        >
+          {isAdmin ? 'Przejdź do Quizu' : 'Panel Admina'}
+        </button>
       </header>
       <main>
-        <TagManager />
-        <AddTherapist onTherapistAdded={() => {
-          // Odśwież listę terapeutów
-          window.location.reload();
-        }} />
-        <TherapistList />
+        {isAdmin ? <AdminPanel /> : <Quiz />}
       </main>
     </div>
   );
