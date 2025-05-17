@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import axios from '../utils/axios';
 import './TherapistList.css';
 
-function TherapistList() {
+function TherapistList({ tagsUpdated }) {
   const [therapists, setTherapists] = useState([]);
   const [tags, setTags] = useState([]);
   const [error, setError] = useState(null);
@@ -19,7 +19,7 @@ function TherapistList() {
   useEffect(() => {
     fetchTherapists();
     fetchTags();
-  }, []);
+  }, [tagsUpdated]);
 
   const fetchTherapists = async () => {
     try {

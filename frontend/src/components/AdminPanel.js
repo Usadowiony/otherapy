@@ -1,39 +1,38 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import TherapistList from './TherapistList';
 import TagManager from './TagManager';
-import QuizManager from './QuizManager';
-import './AdminPanel.css';
 
 function AdminPanel() {
-  const [activeTab, setActiveTab] = useState('therapists');
+  const navigate = useNavigate();
+  const [tagsUpdated, setTagsUpdated] = useState(0);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
+  const handleTagsUpdate = () => {
+    setTagsUpdated(prev => prev + 1);
+  };
 
   return (
     <div className="admin-panel">
-      <nav className="admin-nav">
-        <button 
-          className={`nav-button ${activeTab === 'therapists' ? 'active' : ''}`}
-          onClick={() => setActiveTab('therapists')}
-        >
-          Terapeuci
+      <div className="admin-header">
+        <h1>Panel Administracyjny</h1>
+        <button onClick={handleLogout} className="logout-button">
+          Wyloguj
         </button>
-        <button 
-          className={`nav-button ${activeTab === 'tags' ? 'active' : ''}`}
-          onClick={() => setActiveTab('tags')}
-        >
-          Tagi
-        </button>
-        <button 
-          className={`nav-button ${activeTab === 'quiz' ? 'active' : ''}`}
-          onClick={() => setActiveTab('quiz')}
-        >
-          Quiz
-        </button>
-      </nav>
-
-      <div className="admin-content">
-        {activeTab === 'therapists' && <TherapistList />}
-        {activeTab === 'tags' && <TagManager />}
-        {activeTab === 'quiz' && <QuizManager />}
+      </div>
+      <div className="admin-sections">
+        <section className="therapists-section">
+          <h2>Zarządzanie Terapeutami</h2>
+          <TherapistList tagsUpdated={tagsUpdated} />
+        </section>
+        <section className="tags-section">
+          <h2>Zarządzanie Tagami</h2>
+          <TagManager onTagsUpdate={handleTagsUpdate} />
+        </section>
       </div>
     </div>
   );

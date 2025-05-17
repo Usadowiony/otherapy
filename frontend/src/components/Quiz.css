@@ -1,7 +1,16 @@
-.quiz {
+.quiz-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.quiz-message {
+  margin-top: 2rem;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  color: #6c757d;
 }
 
 .progress {

@@ -1,24 +1,21 @@
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./db');
-const Therapist = require('./models/therapist.model');
 const therapistRoutes = require('./routes/therapist.routes');
 const tagRoutes = require('./routes/tag.routes');
-const quizRoutes = require('./routes/quiz.routes');
+const authRoutes = require('./routes/auth.routes');
+const authMiddleware = require('./middleware/auth.middleware');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Endpoint testowy
-app.get('/', (req, res) => {
-  res.send('Therapists Service działa!');
-});
+// Publiczne endpointy
+app.use('/auth', authRoutes);
 
-// Dodaj routing terapeutów
-app.use('/therapists', therapistRoutes);
-app.use('/tags', tagRoutes);
-app.use('/quiz', quizRoutes);
+// Zabezpieczone endpointy
+app.use('/therapists', authMiddleware, therapistRoutes);
+app.use('/tags', authMiddleware, tagRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {
@@ -26,7 +23,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Wystąpił błąd serwera' });
 });
 
-// Synchronizacja bazy i uruchomienie serwera
 const PORT = process.env.PORT || 3001;
 sequelize.sync().then(() => {
   app.listen(PORT, () => {

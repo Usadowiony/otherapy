@@ -1,7 +1,26 @@
 .admin-panel {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  padding: 2rem;
+}
+
+.admin-sections {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .admin-sections {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.therapists-section,
+.tags-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .admin-nav {
@@ -39,4 +58,25 @@
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.logout-button {
+  padding: 0.5rem 1rem;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.logout-button:hover {
+  background-color: #c0392b;
 }

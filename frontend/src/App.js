@@ -1,27 +1,35 @@
-import React, { useState } from 'react';
-import AdminPanel from './components/AdminPanel';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './components/Login';
 import Quiz from './components/Quiz';
+import AdminPanel from './components/AdminPanel';
 import './App.css';
 
 function App() {
-  const [isAdmin, setIsAdmin] = useState(false); // W przyszłości można to połączyć z autentykacją
-
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>otherapy</h1>
-        <button 
-          className="admin-toggle"
-          onClick={() => setIsAdmin(!isAdmin)}
-        >
-          {isAdmin ? 'Przejdź do Quizu' : 'Panel Admina'}
-        </button>
-      </header>
-      <main>
-        {isAdmin ? <AdminPanel /> : <Quiz />}
-      </main>
-    </div>
+    <Router>
+      <Routes>
+        {/* Publiczne ścieżki */}
+        <Route path="/" element={<Quiz />} />
+        
+        {/* Ścieżki admina */}
+        <Route path="/login" element={<Login />} />
+        <Route 
+          path="/admin/*" 
+          element={
+            <PrivateRoute>
+              <AdminPanel />
+            </PrivateRoute>
+          } 
+        />
+      </Routes>
+    </Router>
   );
+}
+
+// Komponent do zabezpieczenia ścieżek admina
+function PrivateRoute({ children }) {
+  const token = localStorage.getItem('token');
+  return token ? children : <Navigate to="/login" />;
 }
 
 export default App;

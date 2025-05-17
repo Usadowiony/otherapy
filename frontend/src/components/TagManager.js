@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../utils/axios';
 import './TagManager.css';
 
-function TagManager() {
+function TagManager({ onTagsUpdate }) {
   const [tags, setTags] = useState([]);
   const [newTag, setNewTag] = useState('');
   const [error, setError] = useState(null);
@@ -26,6 +26,7 @@ function TagManager() {
       await axios.post('http://localhost:3001/tags', { name: newTag });
       setNewTag('');
       fetchTags();
+      onTagsUpdate();
     } catch (err) {
       setError('Błąd podczas dodawania tagu');
     }
@@ -37,6 +38,7 @@ function TagManager() {
         const response = await axios.delete(`http://localhost:3001/tags/${tagId}`);
         if (response.status === 200) {
           fetchTags();
+          onTagsUpdate();
         }
       } catch (err) {
         const errorMessage = err.response?.data?.message || 'Błąd podczas usuwania tagu';
