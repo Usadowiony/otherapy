@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Production
+/build
+/dist
+
+# Bazy danych SQLite
+*.db
+*.db-journal
+**/database/*.db
+**/database/*.db-journal
+
+# Zmienne środowiskowe
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logi
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs
+*.log
+
+# IDE i edytory
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
+.npm/
+.eslintcache
+.stylelintcache
+
+# Tymczasowe pliki
+*.tmp
+*.temp
+.temp/
+tmp/
+
+# Pliki systemowe
+.DS_Store
+Thumbs.db 
