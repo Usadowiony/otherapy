@@ -59,4 +59,26 @@ auth-service/node_modules/
 auth-service/.env
 auth-service/*.log
 auth-service/coverage/
-auth-service/.DS_Store 
+auth-service/.DS_Store
+
+# Therapists Service specific
+therapists-service/node_modules/
+therapists-service/.env
+therapists-service/*.log
+therapists-service/coverage/
+therapists-service/.DS_Store
+
+# Quizzes Service specific
+quizzes-service/node_modules/
+quizzes-service/.env
+quizzes-service/*.log
+quizzes-service/coverage/
+quizzes-service/.DS_Store
+
+# Frontend specific
+frontend/node_modules/
+frontend/.env
+frontend/*.log
+frontend/coverage/
+frontend/.DS_Store
+frontend/build/ 
