@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const LoginForm = () => {
   const [credentials, setCredentials] = useState({
@@ -21,12 +22,19 @@ const LoginForm = () => {
     e.preventDefault();
     setError('');
 
-    // TODO: Replace with actual API call
-    if (credentials.username === 'admin' && credentials.password === 'admin') {
-      // TODO: Store JWT token
-      navigate('/admin-dashboard');
-    } else {
-      setError('Nieprawidłowa nazwa użytkownika lub hasło');
+    try {
+      const response = await axios.post('http://localhost:3002/api/auth/login', credentials);
+      if (response.data.token) {
+        // Zapisz token w localStorage
+        localStorage.setItem('token', response.data.token);
+        navigate('/admin-dashboard');
+      }
+    } catch (error) {
+      if (error.response && error.response.status === 401) {
+        setError('Nieprawidłowa nazwa użytkownika lub hasło');
+      } else {
+        setError('Wystąpił błąd podczas logowania');
+      }
     }
   };
 

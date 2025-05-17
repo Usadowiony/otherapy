@@ -52,4 +52,11 @@ tmp/
 
 # Pliki systemowe
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Auth Service specific
+auth-service/node_modules/
+auth-service/.env
+auth-service/*.log
+auth-service/coverage/
+auth-service/.DS_Store 
