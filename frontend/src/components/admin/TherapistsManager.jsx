@@ -1,31 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { PlusIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import {
   getAllTherapists,
+  getAllTags,
   createTherapist,
   updateTherapist,
-  deleteTherapist,
-  getAllTags,
-  createTag
+  deleteTherapist
 } from '../../services/therapistService';
 
 const TherapistsManager = () => {
   const [therapists, setTherapists] = useState([]);
   const [tags, setTags] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTherapist, setEditingTherapist] = useState(null);
+  const [selectedTherapist, setSelectedTherapist] = useState(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     specialization: '',
     description: '',
-    newTag: ''
+    selectedTags: []
   });
-  const [selectedTags, setSelectedTags] = useState([]);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Pobierz dane przy montowaniu komponentu
   useEffect(() => {
     fetchData();
   }, []);
@@ -33,7 +30,6 @@ const TherapistsManager = () => {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      setError(null);
       const [therapistsData, tagsData] = await Promise.all([
         getAllTherapists(),
         getAllTags()
@@ -41,7 +37,7 @@ const TherapistsManager = () => {
       setTherapists(therapistsData);
       setTags(tagsData);
     } catch (error) {
-      setError(error.message);
+      setError('Błąd podczas pobierania danych');
       console.error('Error fetching data:', error);
     } finally {
       setIsLoading(false);
@@ -49,43 +45,39 @@ const TherapistsManager = () => {
   };
 
   const handleOpenModal = (therapist = null) => {
-    setError(null);
+    setSelectedTherapist(therapist);
     if (therapist) {
-      setEditingTherapist(therapist);
       setFormData({
         firstName: therapist.firstName,
         lastName: therapist.lastName,
         specialization: therapist.specialization,
         description: therapist.description || '',
-        newTag: ''
+        selectedTags: therapist.tags?.map(tag => tag.id) || []
       });
-      setSelectedTags(therapist.Tags);
     } else {
-      setEditingTherapist(null);
       setFormData({
         firstName: '',
         lastName: '',
         specialization: '',
         description: '',
-        newTag: ''
+        selectedTags: []
       });
-      setSelectedTags([]);
     }
+    setError('');
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setEditingTherapist(null);
-    setError(null);
+    setSelectedTherapist(null);
     setFormData({
       firstName: '',
       lastName: '',
       specialization: '',
       description: '',
-      newTag: ''
+      selectedTags: []
     });
-    setSelectedTags([]);
+    setError('');
   };
 
   const handleInputChange = (e) => {
@@ -96,76 +88,35 @@ const TherapistsManager = () => {
     }));
   };
 
-  const handleTagChange = (e) => {
-    const selectedTags = Array.from(e.target.selectedOptions, option => Number(option.value));
+  const handleTagChange = (tagId) => {
     setFormData(prev => ({
       ...prev,
-      tags: selectedTags
+      selectedTags: prev.selectedTags.includes(tagId)
+        ? prev.selectedTags.filter(id => id !== tagId)
+        : [...prev.selectedTags, tagId]
     }));
-  };
-
-  const handleAddTag = async () => {
-    if (!formData.newTag.trim()) {
-      setError('Nazwa tagu nie może być pusta');
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      setError(null);
-      const createdTag = await createTag({ name: formData.newTag.trim() });
-      setTags(prev => [...prev, createdTag]);
-      setFormData(prev => ({
-        ...prev,
-        newTag: ''
-      }));
-    } catch (error) {
-      setError(error.message);
-      console.error('Error adding tag:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRemoveTag = (tagId) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(id => id !== tagId)
-    }));
-    setSelectedTags(prev => prev.filter(tag => tag.id !== tagId));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-    setIsLoading(true);
-
     try {
+      setIsLoading(true);
       const therapistData = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         specialization: formData.specialization,
         description: formData.description,
-        tags: selectedTags.map(tag => tag.id)
+        tagIds: formData.selectedTags
       };
 
-      if (editingTherapist) {
-        await updateTherapist(editingTherapist.id, therapistData);
+      if (selectedTherapist) {
+        await updateTherapist(selectedTherapist.id, therapistData);
       } else {
         await createTherapist(therapistData);
       }
 
-      setIsModalOpen(false);
-      setFormData({
-        firstName: '',
-        lastName: '',
-        specialization: '',
-        description: '',
-        newTag: ''
-      });
-      setSelectedTags([]);
-      setEditingTherapist(null);
-      fetchData();
+      await fetchData();
+      handleCloseModal();
     } catch (error) {
       setError(error.message || 'Wystąpił błąd podczas zapisywania terapeuty');
     } finally {
@@ -177,12 +128,10 @@ const TherapistsManager = () => {
     if (window.confirm('Czy na pewno chcesz usunąć tego terapeutę?')) {
       try {
         setIsLoading(true);
-        setError(null);
         await deleteTherapist(id);
         await fetchData();
       } catch (error) {
-        setError(error.message);
-        console.error('Error deleting therapist:', error);
+        setError('Błąd podczas usuwania terapeuty');
       } finally {
         setIsLoading(false);
       }
@@ -194,22 +143,11 @@ const TherapistsManager = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Zarządzanie Terapeutami</h2>
         <button
-          onClick={() => {
-            setEditingTherapist(null);
-            setFormData({
-              firstName: '',
-              lastName: '',
-              specialization: '',
-              description: '',
-              newTag: ''
-            });
-            setSelectedTags([]);
-            setError(null);
-            setIsModalOpen(true);
-          }}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center"
+          onClick={() => handleOpenModal()}
+          className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-600"
+          disabled={isLoading}
         >
-          <PlusIcon className="h-5 w-5 mr-2" />
+          <PlusIcon className="h-5 w-5" />
           Dodaj Terapeutę
         </button>
       </div>
@@ -220,182 +158,140 @@ const TherapistsManager = () => {
         </div>
       )}
 
-      {isLoading && (
-        <div className="text-center py-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {therapists.map(therapist => (
+            <div key={therapist.id} className="bg-white rounded-lg shadow p-4">
+              <h3 className="text-xl font-semibold mb-2">
+                {therapist.firstName} {therapist.lastName}
+              </h3>
+              <p className="text-gray-600 mb-2">{therapist.specialization}</p>
+              {therapist.description && (
+                <p className="text-gray-500 mb-4">{therapist.description}</p>
+              )}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {therapist.tags?.map(tag => (
+                  <span
+                    key={tag.id}
+                    className="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded"
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => handleOpenModal(therapist)}
+                  className="text-blue-500 hover:text-blue-700"
+                  disabled={isLoading}
+                >
+                  <PencilIcon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => handleDelete(therapist.id)}
+                  className="text-red-500 hover:text-red-700"
+                  disabled={isLoading}
+                >
+                  <TrashIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {therapists.map(therapist => (
-          <div key={therapist.id} className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-xl font-semibold mb-2">
-              {therapist.firstName} {therapist.lastName}
-            </h3>
-            <p className="text-gray-600 mb-2">{therapist.specialization}</p>
-            {therapist.description && (
-              <p className="text-gray-500 mb-4">{therapist.description}</p>
-            )}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {therapist.Tags.map(tag => (
-                <span
-                  key={tag.id}
-                  className="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded"
-                >
-                  {tag.name}
-                </span>
-              ))}
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => handleOpenModal(therapist)}
-                className="text-blue-500 hover:text-blue-700"
-                disabled={isLoading}
-              >
-                <PencilIcon className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => handleDelete(therapist.id)}
-                className="text-red-500 hover:text-red-700"
-                disabled={isLoading}
-              >
-                <TrashIcon className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">
-              {editingTherapist ? 'Edytuj Terapeutę' : 'Dodaj Terapeutę'}
+              {selectedTherapist ? 'Edytuj Terapeutę' : 'Dodaj Terapeutę'}
             </h3>
-            
-            {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                {error}
-              </div>
-            )}
-
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Imię *</label>
+                  <label className="block text-sm font-medium text-gray-700">Imię</label>
                   <input
                     type="text"
+                    name="firstName"
                     value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    onChange={handleInputChange}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     required
                     disabled={isLoading}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Nazwisko *</label>
+                  <label className="block text-sm font-medium text-gray-700">Nazwisko</label>
                   <input
                     type="text"
+                    name="lastName"
                     value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    onChange={handleInputChange}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     required
                     disabled={isLoading}
                   />
                 </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Specjalizacja *</label>
-                <input
-                  type="text"
-                  value={formData.specialization}
-                  onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Opis</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  rows="3"
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">Tagi (opcjonalne)</label>
-                <div className="flex gap-2 mb-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Specjalizacja</label>
                   <input
                     type="text"
-                    value={formData.newTag}
-                    onChange={(e) => setFormData({ ...formData, newTag: e.target.value })}
-                    className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="Dodaj nowy tag"
+                    name="specialization"
+                    value={formData.specialization}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    required
                     disabled={isLoading}
                   />
-                  <button
-                    type="button"
-                    onClick={handleAddTag}
-                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-                    disabled={isLoading || !formData.newTag.trim()}
-                  >
-                    Dodaj
-                  </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {selectedTags.map((tag) => (
-                    <span
-                      key={tag.id}
-                      className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center"
-                    >
-                      {tag.name}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(tag.id)}
-                        className="ml-2 text-blue-600 hover:text-blue-800"
-                        disabled={isLoading}
-                      >
-                        <XMarkIcon className="h-4 w-4" />
-                      </button>
-                    </span>
-                  ))}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Opis</label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    rows="3"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tagi</label>
+                  <div className="space-y-2">
+                    {tags.map(tag => (
+                      <label key={tag.id} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={formData.selectedTags.includes(tag.id)}
+                          onChange={() => handleTagChange(tag.id)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          disabled={isLoading}
+                        />
+                        <span className="ml-2">{tag.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-2">
+              <div className="mt-6 flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setError(null);
-                  }}
-                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                  onClick={handleCloseModal}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                   disabled={isLoading}
                 >
                   Anuluj
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center"
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
                   disabled={isLoading}
                 >
-                  {isLoading ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Zapisywanie...
-                    </>
-                  ) : (
-                    'Zapisz'
-                  )}
+                  {isLoading ? 'Zapisywanie...' : (selectedTherapist ? 'Zapisz' : 'Dodaj')}
                 </button>
               </div>
             </form>
