@@ -3,11 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import TherapistList from './TherapistList';
 import TagManager from './TagManager';
 import QuizEditor from './QuizEditor';
-import './AdminPanel.css';
 
 function AdminPanel() {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState('therapists');
+  const [activeTab, setActiveTab] = useState('quiz');
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -15,58 +14,41 @@ function AdminPanel() {
   };
 
   return (
-    <div className="admin-panel">
-      <div className="admin-header">
+    <div className="admin-panel p-4">
+      <div className="d-flex justify-between align-center mb-4">
         <h1>Panel Administracyjny</h1>
-        <button onClick={handleLogout} className="logout-button">
+        <button className="btn btn-danger" onClick={handleLogout}>
           Wyloguj
         </button>
       </div>
       
-      <div className="admin-sections">
-        <div className="section-tabs">
+      <div className="d-flex justify-center mb-4">
+        <div className="btn-group">
           <button 
-            className={activeSection === 'therapists' ? 'active' : ''} 
-            onClick={() => setActiveSection('therapists')}
+            className={`btn ${activeTab === 'quiz' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('quiz')}
           >
-            Terapeuci
+            Quiz
           </button>
           <button 
-            className={activeSection === 'tags' ? 'active' : ''} 
-            onClick={() => setActiveSection('tags')}
+            className={`btn ${activeTab === 'tags' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('tags')}
           >
             Tagi
           </button>
           <button 
-            className={activeSection === 'quiz' ? 'active' : ''} 
-            onClick={() => setActiveSection('quiz')}
+            className={`btn ${activeTab === 'therapists' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('therapists')}
           >
-            Quiz
+            Terapeuci
           </button>
         </div>
+      </div>
 
-        <div className="section-content">
-          {activeSection === 'therapists' && (
-            <section className="therapists-section">
-              <h2>Zarządzanie Terapeutami</h2>
-              <TherapistList />
-            </section>
-          )}
-          
-          {activeSection === 'tags' && (
-            <section className="tags-section">
-              <h2>Zarządzanie Tagami</h2>
-              <TagManager />
-            </section>
-          )}
-          
-          {activeSection === 'quiz' && (
-            <section className="quiz-section">
-              <h2>Edycja Quizu</h2>
-              <QuizEditor />
-            </section>
-          )}
-        </div>
+      <div className="tab-content">
+        {activeTab === 'quiz' && <QuizEditor />}
+        {activeTab === 'tags' && <TagManager />}
+        {activeTab === 'therapists' && <TherapistList />}
       </div>
     </div>
   );

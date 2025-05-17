@@ -1,0 +1,74 @@
+.btn {
+  display: inline-block;
+  padding: $spacing-sm $spacing-md;
+  border: none;
+  border-radius: $border-radius;
+  font-size: $font-size-base;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  @include transition;
+  @include shadow(1);
+
+  &:hover {
+    @include shadow(2);
+  }
+
+  &:active {
+    @include shadow(1);
+  }
+
+  // Variants
+  &-primary {
+    background-color: $primary-color;
+    color: white;
+
+    &:hover {
+      background-color: darken($primary-color, 10%);
+    }
+  }
+
+  &-secondary {
+    background-color: $secondary-color;
+    color: white;
+
+    &:hover {
+      background-color: darken($secondary-color, 10%);
+    }
+  }
+
+  &-success {
+    background-color: $success-color;
+    color: white;
+
+    &:hover {
+      background-color: darken($success-color, 10%);
+    }
+  }
+
+  &-danger {
+    background-color: $danger-color;
+    color: white;
+
+    &:hover {
+      background-color: darken($danger-color, 10%);
+    }
+  }
+
+  // Sizes
+  &-sm {
+    padding: $spacing-xs $spacing-sm;
+    font-size: 0.875rem;
+  }
+
+  &-lg {
+    padding: $spacing-md $spacing-lg;
+    font-size: 1.125rem;
+  }
+
+  // States
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+} 

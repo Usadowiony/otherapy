@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const sequelize = require('./config/database');
 const quizRoutes = require('./routes/quiz.routes');
+const errorHandler = require('./middleware/error.middleware');
 
 const app = express();
 
@@ -10,6 +11,9 @@ app.use(express.json());
 
 // Routes
 app.use('/api/quiz', quizRoutes);
+
+// Error handling
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3002;
 

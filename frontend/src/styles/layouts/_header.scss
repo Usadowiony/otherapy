@@ -1,0 +1,46 @@
+.header {
+  background-color: white;
+  @include shadow(1);
+  padding: $spacing-md 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+
+  &-container {
+    @include flex(row, space-between, center);
+  }
+
+  &-logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: $primary-color;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: none;
+    }
+  }
+
+  &-nav {
+    @include flex(row, flex-end, center);
+    gap: $spacing-md;
+
+    &-link {
+      color: $dark-color;
+      text-decoration: none;
+      padding: $spacing-xs $spacing-sm;
+      border-radius: $border-radius;
+      @include transition;
+
+      &:hover {
+        background-color: $light-color;
+        text-decoration: none;
+      }
+
+      &.active {
+        color: $primary-color;
+        font-weight: 500;
+      }
+    }
+  }
+} 

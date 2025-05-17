@@ -1,0 +1,47 @@
+.footer {
+  background-color: $dark-color;
+  color: white;
+  padding: $spacing-xl 0;
+  margin-top: auto;
+
+  &-container {
+    @include flex(row, space-between, flex-start);
+    flex-wrap: wrap;
+    gap: $spacing-xl;
+  }
+
+  &-section {
+    flex: 1;
+    min-width: 250px;
+
+    &-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: $spacing-md;
+    }
+
+    &-content {
+      @include flex(column, flex-start, flex-start);
+      gap: $spacing-sm;
+    }
+  }
+
+  &-link {
+    color: rgba(white, 0.8);
+    text-decoration: none;
+    @include transition;
+
+    &:hover {
+      color: white;
+      text-decoration: none;
+    }
+  }
+
+  &-bottom {
+    margin-top: $spacing-xl;
+    padding-top: $spacing-md;
+    border-top: 1px solid rgba(white, 0.1);
+    text-align: center;
+    color: rgba(white, 0.6);
+  }
+} 

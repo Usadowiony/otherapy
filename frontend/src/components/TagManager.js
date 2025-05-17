@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../utils/axios';
-import './TagManager.css';
+import axios from 'axios';
 
 function TagManager({ onTagsUpdate }) {
   const [tags, setTags] = useState([]);

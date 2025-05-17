@@ -1,0 +1,43 @@
+.tag-manager {
+  .tag-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: $spacing-md;
+    margin-bottom: $spacing-lg;
+
+    .tag-item {
+      background-color: white;
+      padding: $spacing-md;
+      border-radius: $border-radius;
+      @include shadow(1);
+      @include flex(row, space-between, center);
+
+      .tag-name {
+        font-weight: 500;
+        color: $dark-color;
+      }
+
+      .tag-actions {
+        @include flex(row, flex-end, center);
+        gap: $spacing-xs;
+      }
+    }
+  }
+
+  .add-tag-form {
+    background-color: white;
+    padding: $spacing-lg;
+    border-radius: $border-radius;
+    @include shadow(1);
+    margin-bottom: $spacing-lg;
+
+    .form-group {
+      margin-bottom: $spacing-md;
+    }
+
+    .btn-group {
+      @include flex(row, flex-end, center);
+      gap: $spacing-sm;
+    }
+  }
+} 

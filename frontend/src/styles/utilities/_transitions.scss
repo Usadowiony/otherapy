@@ -1,0 +1,7 @@
+.transition { @include transition; }
+.transition-fast { @include transition(all, 0.15s, ease); }
+.transition-slow { @include transition(all, 0.5s, ease); }
+
+.transition-transform { transition-property: transform !important; }
+.transition-opacity { transition-property: opacity !important; }
+.transition-colors { transition-property: color, background-color, border-color !important; } 

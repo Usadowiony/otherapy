@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from '../utils/axios';
-import './QuizEditor.css';
+import axios from 'axios';
 
 function QuizEditor() {
   const [quiz, setQuiz] = useState(null);

@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import axios from '../utils/axios';
-import './TherapistList.css';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Link } from 'react-router-dom';
 
-function TherapistList({ tagsUpdated }) {
+function TherapistList() {
   const [therapists, setTherapists] = useState([]);
   const [tags, setTags] = useState([]);
   const [error, setError] = useState(null);
@@ -19,7 +19,7 @@ function TherapistList({ tagsUpdated }) {
   useEffect(() => {
     fetchTherapists();
     fetchTags();
-  }, [tagsUpdated]);
+  }, []);
 
   const fetchTherapists = async () => {
     try {
