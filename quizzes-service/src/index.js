@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use('/api/quizzes', quizRoutes);
+app.use('/api/quiz', quizRoutes);
 
 const PORT = process.env.PORT || 3002;
 

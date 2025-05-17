@@ -1,7 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../db');
-const QuizQuestion = require('./quizQuestion.model');
-const Tag = require('./tag.model');
+const sequelize = require('../config/database');
 
 const QuizAnswer = sequelize.define('QuizAnswer', {
   answer: {
@@ -11,15 +9,19 @@ const QuizAnswer = sequelize.define('QuizAnswer', {
   order: {
     type: DataTypes.INTEGER,
     allowNull: false
+  },
+  tagPoints: {
+    type: DataTypes.JSON,
+    allowNull: false,
+    defaultValue: {}
+  },
+  questionId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   }
 }, {
   tableName: 'quiz_answers',
   timestamps: false
 });
-
-// Relacje
-QuizAnswer.belongsTo(QuizQuestion);
-QuizAnswer.belongsToMany(Tag, { through: 'quiz_answer_tags' });
-Tag.belongsToMany(QuizAnswer, { through: 'quiz_answer_tags' });
 
 module.exports = QuizAnswer;

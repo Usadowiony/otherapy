@@ -1,110 +1,175 @@
 const express = require('express');
 const router = express.Router();
-const QuizQuestion = require('../models/quizQuestion.model');
-const QuizAnswer = require('../models/quizAnswer.model');
-const Tag = require('../models/tag.model');
-const Therapist = require('../models/therapist.model');
+const { Quiz, QuizQuestion, QuizAnswer } = require('../models');
+const axios = require('axios');
+const sequelize = require('../config/database');
 
-// Pobierz wszystkie pytania z odpowiedziami
-router.get('/questions', async (req, res) => {
+// GET /api/quiz - pobierz quiz
+router.get('/', async (req, res) => {
   try {
-    const questions = await QuizQuestion.findAll({
+    let quiz = await Quiz.findOne({
       include: [{
-        model: QuizAnswer,
-        include: [Tag]
-      }],
-      order: [['order', 'ASC'], [QuizAnswer, 'order', 'ASC']]
+        model: QuizQuestion,
+        include: [QuizAnswer]
+      }]
     });
-    res.json(questions);
+    
+    if (!quiz) {
+      console.log('Tworzenie nowego quizu...');
+      // Jeśli nie ma quizu, stwórz domyślny
+      quiz = await Quiz.create({
+        title: 'Quiz dopasowania terapeuty',
+        description: 'Odpowiedz na pytania, aby znaleźć najlepiej dopasowanego terapeutę.'
+      });
+
+      // Dodaj przykładowe pytanie
+      const question = await QuizQuestion.create({
+        quizId: quiz.id,
+        question: 'Jakie są Twoje główne problemy?',
+        order: 1
+      });
+
+      // Dodaj przykładowe odpowiedzi
+      await QuizAnswer.create({
+        questionId: question.id,
+        answer: 'Lęk i niepokój',
+        order: 1,
+        tagPoints: { "1": 80 }
+      });
+
+      await QuizAnswer.create({
+        questionId: question.id,
+        answer: 'Depresja',
+        order: 2,
+        tagPoints: { "2": 80 }
+      });
+
+      // Pobierz świeżo utworzony quiz z relacjami
+      quiz = await Quiz.findOne({
+        where: { id: quiz.id },
+        include: [{
+          model: QuizQuestion,
+          include: [QuizAnswer]
+        }]
+      });
+    }
+    
+    res.json(quiz);
   } catch (error) {
+    console.error('Błąd podczas pobierania/tworzenia quizu:', error);
     res.status(500).json({ message: error.message });
   }
 });
 
-// Dodaj nowe pytanie
-router.post('/questions', async (req, res) => {
+// PUT /api/quiz - aktualizuj quiz
+router.put('/', async (req, res) => {
   try {
-    const { question, order, answers } = req.body;
-    const newQuestion = await QuizQuestion.create({ question, order });
+    const { title, description, questions } = req.body;
     
-    if (answers && answers.length > 0) {
-      for (const answer of answers) {
+    // Znajdź istniejący quiz lub stwórz nowy
+    let quiz = await Quiz.findOne();
+    if (!quiz) {
+      quiz = await Quiz.create({ title, description });
+    } else {
+      await quiz.update({ title, description });
+    }
+    
+    // Usuń stare pytania i odpowiedzi
+    await QuizQuestion.destroy({ where: { quizId: quiz.id } });
+    
+    // Dodaj nowe pytania i odpowiedzi
+    for (const question of questions) {
+      const createdQuestion = await QuizQuestion.create({
+        quizId: quiz.id,
+        question: question.text,
+        order: question.order
+      });
+      
+      for (const answer of question.answers) {
         await QuizAnswer.create({
-          ...answer,
-          QuizQuestionId: newQuestion.id
+          questionId: createdQuestion.id,
+          answer: answer.text,
+          order: answer.order,
+          tagPoints: answer.tagPoints
         });
       }
     }
     
-    res.status(201).json(newQuestion);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-// Dodaj odpowiedź do pytania
-router.post('/questions/:questionId/answers', async (req, res) => {
-  try {
-    const { questionId } = req.params;
-    const { answer, order, tagIds } = req.body;
-    
-    const newAnswer = await QuizAnswer.create({
-      answer,
-      order,
-      QuizQuestionId: questionId
-    });
-    
-    if (tagIds && tagIds.length > 0) {
-      await newAnswer.setTags(tagIds);
-    }
-    
-    res.status(201).json(newAnswer);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-// Dopasuj terapeutów na podstawie odpowiedzi
-router.post('/match', async (req, res) => {
-  try {
-    const { answers } = req.body; // Array of answer IDs
-    
-    // Pobierz wszystkie tagi z wybranych odpowiedzi
-    const selectedAnswers = await QuizAnswer.findAll({
-      where: { id: answers },
-      include: [Tag]
-    });
-    
-    // Zbierz wszystkie tagi
-    const tags = selectedAnswers.reduce((acc, answer) => {
-      return [...acc, ...answer.Tags];
-    }, []);
-    
-    // Znajdź terapeutów z tymi tagami
-    const therapists = await Therapist.findAll({
+    // Pobierz zaktualizowany quiz
+    const updatedQuiz = await Quiz.findOne({
+      where: { id: quiz.id },
       include: [{
-        model: Tag,
-        where: {
-          id: tags.map(tag => tag.id)
-        }
+        model: QuizQuestion,
+        include: [QuizAnswer]
       }]
     });
     
-    // Sortuj terapeutów według liczby pasujących tagów
-    const scoredTherapists = therapists.map(therapist => {
-      const matchingTags = therapist.Tags.filter(tag => 
-        tags.some(t => t.id === tag.id)
-      );
-      return {
-        ...therapist.toJSON(),
-        matchScore: matchingTags.length
-      };
-    }).sort((a, b) => b.matchScore - a.matchScore);
-    
-    res.json(scoredTherapists);
+    res.json(updatedQuiz);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Błąd podczas aktualizacji quizu:', error);
+    res.status(500).json({ message: error.message });
   }
 });
+
+// POST /api/quiz/submit - wysłanie odpowiedzi
+router.post('/submit', async (req, res) => {
+  try {
+    const { answers } = req.body;
+    const quiz = await Quiz.findOne({
+      include: [{
+        model: QuizQuestion,
+        include: [QuizAnswer]
+      }]
+    });
+
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz nie znaleziony' });
+    }
+
+    // Obliczanie punktów dla tagów
+    const tagPoints = {};
+    for (const answerId of answers) {
+      const answer = quiz.QuizQuestions.flatMap(q => q.QuizAnswers).find(a => a.id === answerId);
+      if (answer) {
+        for (const [tag, points] of Object.entries(answer.tagPoints)) {
+          tagPoints[tag] = (tagPoints[tag] || 0) + points;
+        }
+      }
+    }
+
+    // Pobieranie terapeutów z therapists-service
+    const therapistsResponse = await axios.get('http://localhost:3001/therapists');
+    const therapists = therapistsResponse.data;
+
+    // Dopasowywanie terapeutów
+    const matchedTherapists = therapists.map(therapist => {
+      const matchScore = calculateMatchScore(therapist.Tags, tagPoints);
+      return {
+        ...therapist,
+        matchScore
+      };
+    }).filter(t => t.matchScore > 0)
+      .sort((a, b) => b.matchScore - a.matchScore);
+
+    res.json({ therapists: matchedTherapists });
+  } catch (error) {
+    console.error('Błąd podczas przetwarzania odpowiedzi:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Funkcja pomocnicza do obliczania dopasowania
+function calculateMatchScore(therapistTags, userTagPoints) {
+  let totalScore = 0;
+  let maxPossibleScore = 0;
+
+  for (const tag of therapistTags) {
+    const points = userTagPoints[tag.id] || 0;
+    totalScore += points;
+    maxPossibleScore += 100; // Maksymalnie 100 punktów na tag
+  }
+
+  return maxPossibleScore > 0 ? Math.round((totalScore / maxPossibleScore) * 100) : 0;
+}
 
 module.exports = router;

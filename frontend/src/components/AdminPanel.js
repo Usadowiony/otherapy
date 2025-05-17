@@ -2,18 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TherapistList from './TherapistList';
 import TagManager from './TagManager';
+import QuizEditor from './QuizEditor';
+import './AdminPanel.css';
 
 function AdminPanel() {
   const navigate = useNavigate();
-  const [tagsUpdated, setTagsUpdated] = useState(0);
+  const [activeSection, setActiveSection] = useState('therapists');
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
-  };
-
-  const handleTagsUpdate = () => {
-    setTagsUpdated(prev => prev + 1);
   };
 
   return (
@@ -24,15 +22,51 @@ function AdminPanel() {
           Wyloguj
         </button>
       </div>
+      
       <div className="admin-sections">
-        <section className="therapists-section">
-          <h2>Zarządzanie Terapeutami</h2>
-          <TherapistList tagsUpdated={tagsUpdated} />
-        </section>
-        <section className="tags-section">
-          <h2>Zarządzanie Tagami</h2>
-          <TagManager onTagsUpdate={handleTagsUpdate} />
-        </section>
+        <div className="section-tabs">
+          <button 
+            className={activeSection === 'therapists' ? 'active' : ''} 
+            onClick={() => setActiveSection('therapists')}
+          >
+            Terapeuci
+          </button>
+          <button 
+            className={activeSection === 'tags' ? 'active' : ''} 
+            onClick={() => setActiveSection('tags')}
+          >
+            Tagi
+          </button>
+          <button 
+            className={activeSection === 'quiz' ? 'active' : ''} 
+            onClick={() => setActiveSection('quiz')}
+          >
+            Quiz
+          </button>
+        </div>
+
+        <div className="section-content">
+          {activeSection === 'therapists' && (
+            <section className="therapists-section">
+              <h2>Zarządzanie Terapeutami</h2>
+              <TherapistList />
+            </section>
+          )}
+          
+          {activeSection === 'tags' && (
+            <section className="tags-section">
+              <h2>Zarządzanie Tagami</h2>
+              <TagManager />
+            </section>
+          )}
+          
+          {activeSection === 'quiz' && (
+            <section className="quiz-section">
+              <h2>Edycja Quizu</h2>
+              <QuizEditor />
+            </section>
+          )}
+        </div>
       </div>
     </div>
   );

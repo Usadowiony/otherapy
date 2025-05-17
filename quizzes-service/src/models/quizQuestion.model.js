@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../db');
+const sequelize = require('../config/database');
 
 const QuizQuestion = sequelize.define('QuizQuestion', {
   question: {
@@ -7,6 +7,10 @@ const QuizQuestion = sequelize.define('QuizQuestion', {
     allowNull: false
   },
   order: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  quizId: {
     type: DataTypes.INTEGER,
     allowNull: false
   }

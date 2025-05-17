@@ -2,7 +2,6 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
-  text-align: center;
 }
 
 .quiz-message {
@@ -77,11 +76,14 @@
   color: #3498db;
 }
 
-.error {
+.quiz-loading,
+.quiz-error,
+.quiz-message {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.quiz-error {
   color: #e74c3c;
-  padding: 10px;
-  background: #fde8e8;
-  border-radius: 4px;
-  margin: 20px auto;
-  max-width: 800px;
 }
