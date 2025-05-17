@@ -1,26 +1,27 @@
 {
   "name": "therapists-service",
   "version": "1.0.0",
-  "main": "src/index.js",
+  "description": "Microservice for managing therapists and tags",
+  "main": "src/app.js",
   "scripts": {
-    "start": "nodemon src/index.js"
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
-    "express": "^5.1.0",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
     "express-validator": "^7.2.1",
-    "jsonwebtoken": "^9.0.2",
-    "sequelize": "^6.37.7",
-    "sqlite3": "^5.1.7"
+    "jsonwebtoken": "^9.0.0",
+    "sequelize": "^6.31.0",
+    "sqlite3": "^5.1.6"
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "nodemon": "^3.1.10"
+    "nodemon": "^2.0.22"
   }
 }
