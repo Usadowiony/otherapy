@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
 import Welcome from "../quiz/Welcome";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { getAllQuizzes } from "../../services/quizService";
 import { getQuestionsForQuiz, createQuestion, updateQuestion, deleteQuestion } from "../../services/questionService";
 import { createAnswer, updateAnswer, deleteAnswer } from "../../services/answerService";
@@ -176,16 +175,18 @@ const QuizManager = () => {
     setHasChanges(JSON.stringify(draftQuestions) !== initialStateRef.current);
   }, [draftQuestions]);
 
-  // Drag & drop
-  const handleDragEnd = (result) => {
-    if (!result.destination) return;
-    const reordered = Array.from(draftQuestions);
-    const [removed] = reordered.splice(result.source.index, 1);
-    reordered.splice(result.destination.index, 0, removed);
-    setDraftQuestions(reordered.map((q, i) => ({ ...q, order: i + 1 })));
+  // Dodaj funkcję przesuwania pytań
+  const moveQuestion = (fromIdx, toIdx) => {
+    setDraftQuestions(qs => {
+      const arr = [...qs];
+      const [moved] = arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, moved);
+      return arr.map((q, i) => ({ ...q, order: i + 1 }));
+    });
   };
 
   // Dodawanie/edycja pytań
+  const [localIdCounter, setLocalIdCounter] = useState(1);
   const handleAddQuestion = () => {
     setEditQIdx(draftQuestions.length);
     setShowQModal(true);
@@ -198,8 +199,10 @@ const QuizManager = () => {
     if (!text.trim()) return;
     setDraftQuestions(qs => {
       if (editQIdx === qs.length) {
-        // Dodaj nowe
-        return [...qs, { id: undefined, text, order: qs.length + 1, answers: [] }];
+        // Dodaj nowe z unikalnym localId
+        const newLocalId = `local-${Date.now()}-${localIdCounter}`;
+        setLocalIdCounter(c => c + 1);
+        return [...qs, { id: undefined, localId: newLocalId, text, order: qs.length + 1, answers: [] }];
       } else {
         // Edytuj
         return qs.map((q, i) => i === editQIdx ? { ...q, text } : q);
@@ -321,48 +324,58 @@ const QuizManager = () => {
         </div>
       ) : (
         <div className="relative">
-          <div ref={scrollContainerRef} style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="questions-droppable">
-                {(provided) => (
-                  <div ref={provided.innerRef} {...provided.droppableProps} style={{ width: '100%', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                    {draftQuestions.map((q, idx) => (
-                      <Draggable key={q.id || `draft-${idx}`} draggableId={(q.id || `draft-${idx}`).toString()} index={idx}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={`mb-6 border rounded-lg p-4 bg-white transition-shadow ${snapshot.isDragging ? "shadow-2xl" : ""}`}
-                            style={{ cursor: snapshot.isDragging ? 'grabbing' : 'default', width: '100%', minWidth: 0, boxSizing: 'border-box', zIndex: snapshot.isDragging ? 50 : 'auto' }}
-                          >
-                            <div className="flex justify-between items-center mb-2">
-                              <h3 className="font-semibold">Pytanie {idx + 1}:</h3>
-                              <div className="flex gap-2">
-                                <button className="text-blue-600 hover:underline" onClick={() => handleEditQuestion(idx)}>Edytuj</button>
-                                <button className="text-red-600 hover:underline" onClick={() => handleDeleteQuestion(idx)}>Usuń</button>
-                              </div>
-                            </div>
-                            <div className="mb-2">{q.text}</div>
-                            <ul className="list-disc ml-6">
-                              {q.answers.map((ans, aIdx) => (
-                                <li key={ans.id || `draft-a-${aIdx}`} className="mb-1 flex items-center gap-2">
-                                  <span>{ans.text}</span>
-                                  <button className="text-blue-600 hover:underline text-xs" onClick={() => handleEditAnswer(idx, aIdx)}>Edytuj</button>
-                                  <button className="text-red-600 hover:underline text-xs" onClick={() => handleDeleteAnswer(idx, aIdx)}>Usuń</button>
-                                </li>
-                              ))}
-                            </ul>
-                            <button className="mt-2 px-3 py-1 bg-green-600 text-white rounded" onClick={() => handleAddAnswer(idx)}>Dodaj odpowiedź</button>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
+          <div ref={scrollContainerRef} style={{ maxHeight: '70vh', overflowY: 'auto', overflowX: 'hidden' }}>
+            {draftQuestions.map((q, idx) => (
+              <div
+                key={q.id || q.localId}
+                className="mb-6 border rounded-lg p-4 bg-white transition-shadow select-none hover:bg-blue-50"
+                style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', userSelect: 'none' }}
+              >
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold">Pytanie {idx + 1}:</h3>
                   </div>
-                )}
-              </Droppable>
-            </DragDropContext>
+                  <div className="flex gap-2">
+                    <button className="text-blue-600 hover:underline" onClick={() => handleEditQuestion(idx)}>Edytuj</button>
+                    <button className="text-red-600 hover:underline" onClick={() => handleDeleteQuestion(idx)}>Usuń</button>
+                  </div>
+                </div>
+                <div className="mb-2">{q.text}</div>
+                <ul className="list-disc ml-6">
+                  {q.answers.map((ans, aIdx) => (
+                    <li key={ans.id || `draft-a-${aIdx}`} className="mb-1 flex items-center gap-2">
+                      <span>{ans.text}</span>
+                      <button className="text-blue-600 hover:underline text-xs" onClick={() => handleEditAnswer(idx, aIdx)}>Edytuj</button>
+                      <button className="text-red-600 hover:underline text-xs" onClick={() => handleDeleteAnswer(idx, aIdx)}>Usuń</button>
+                    </li>
+                  ))}
+                </ul>
+                <button className="mt-2 px-3 py-1 bg-green-600 text-white rounded" onClick={() => handleAddAnswer(idx)}>Dodaj odpowiedź</button>
+                {/* Strzałki przesuwania */}
+                <div className="flex gap-2 justify-end mt-4">
+                  {idx > 0 && (
+                    <button
+                      className="p-1 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
+                      title="Przesuń wyżej"
+                      onClick={() => moveQuestion(idx, idx - 1)}
+                      style={{ fontSize: 18 }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    </button>
+                  )}
+                  {idx < draftQuestions.length - 1 && (
+                    <button
+                      className="p-1 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
+                      title="Przesuń niżej"
+                      onClick={() => moveQuestion(idx, idx + 1)}
+                      style={{ fontSize: 18 }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
