@@ -1,23 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import {
-  getAllTags,
-  getTherapistsUsingTag,
-  createTag,
-  updateTag,
-  deleteTag
-} from '../../services/tagService';
+import { getAllTags, createTag, updateTag, deleteTag, getTherapistsUsingTag } from '../../services/tagService';
 
 const TagsManager = () => {
   const [tags, setTags] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedTag, setSelectedTag] = useState(null);
   const [formData, setFormData] = useState({
     name: ''
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [tagToDelete, setTagToDelete] = useState(null);
   const [therapistsUsingTag, setTherapistsUsingTag] = useState([]);
 
   useEffect(() => {
@@ -30,8 +25,7 @@ const TagsManager = () => {
       const data = await getAllTags();
       setTags(data);
     } catch (error) {
-      setError(error.message || 'Błąd podczas pobierania tagów');
-      console.error('Error fetching tags:', error);
+      setError('Błąd podczas pobierania tagów');
     } finally {
       setIsLoading(false);
     }
@@ -61,29 +55,6 @@ const TagsManager = () => {
     setError('');
   };
 
-  const handleOpenDeleteModal = async (tag) => {
-    try {
-      setIsLoading(true);
-      setError('');
-      
-      const therapists = await getTherapistsUsingTag(tag.id);
-      setTherapistsUsingTag(therapists);
-      setSelectedTag(tag);
-      setIsDeleteModalOpen(true);
-    } catch (error) {
-      console.error('Error checking tag usage:', error);
-      setError(error.message || 'Błąd podczas sprawdzania użycia tagu');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCloseDeleteModal = () => {
-    setIsDeleteModalOpen(false);
-    setSelectedTag(null);
-    setTherapistsUsingTag([]);
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -96,13 +67,11 @@ const TagsManager = () => {
     e.preventDefault();
     try {
       setIsLoading(true);
-      
       if (selectedTag) {
         await updateTag(selectedTag.id, formData);
       } else {
         await createTag(formData);
       }
-
       await fetchTags();
       handleCloseModal();
     } catch (error) {
@@ -112,16 +81,34 @@ const TagsManager = () => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClick = async (tag) => {
     try {
       setIsLoading(true);
-      await deleteTag(selectedTag.id);
-      await fetchTags();
-      handleCloseDeleteModal();
+      const therapists = await getTherapistsUsingTag(tag.id);
+      setTherapistsUsingTag(therapists);
+      setTagToDelete(tag);
+      setShowDeleteConfirm(true);
     } catch (error) {
-      setError(error.message || 'Wystąpił błąd podczas usuwania tagu');
+      setError('Błąd podczas sprawdzania użycia tagu');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (tagToDelete && therapistsUsingTag.length === 0) {
+      try {
+        setIsLoading(true);
+        await deleteTag(tagToDelete.id);
+        await fetchTags();
+      } catch (error) {
+        setError('Błąd podczas usuwania tagu');
+      } finally {
+        setIsLoading(false);
+        setShowDeleteConfirm(false);
+        setTagToDelete(null);
+        setTherapistsUsingTag([]);
+      }
     }
   };
 
@@ -153,51 +140,46 @@ const TagsManager = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {tags.map(tag => (
             <div key={tag.id} className="bg-white rounded-lg shadow p-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">{tag.name}</h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleOpenModal(tag)}
-                    className="text-blue-500 hover:text-blue-700"
-                    disabled={isLoading}
-                  >
-                    <PencilIcon className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => handleOpenDeleteModal(tag)}
-                    className="text-red-500 hover:text-red-700"
-                    disabled={isLoading}
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </button>
-                </div>
+              <h3 className="text-xl font-semibold mb-2">{tag.name}</h3>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => handleOpenModal(tag)}
+                  className="text-blue-500 hover:text-blue-700"
+                  disabled={isLoading}
+                >
+                  <PencilIcon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => handleDeleteClick(tag)}
+                  className="text-red-500 hover:text-red-700"
+                  disabled={isLoading}
+                >
+                  <TrashIcon className="h-5 w-5" />
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Modal dodawania/edycji tagu */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">
+            <h3 className="text-xl font-bold mb-6">
               {selectedTag ? 'Edytuj Tag' : 'Dodaj Tag'}
             </h3>
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nazwa tagu</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nazwa</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                  disabled={isLoading}
+                />
               </div>
               <div className="mt-6 flex justify-end gap-3">
                 <button
@@ -221,8 +203,7 @@ const TagsManager = () => {
         </div>
       )}
 
-      {/* Modal potwierdzenia usuwania */}
-      {isDeleteModalOpen && (
+      {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">Potwierdź usunięcie</h3>
@@ -231,37 +212,54 @@ const TagsManager = () => {
                 <p className="text-red-600 mb-4">
                   Nie można usunąć tego tagu, ponieważ jest używany przez następujących terapeutów:
                 </p>
-                <ul className="list-disc list-inside mb-4">
+                <ul className="list-disc list-inside mb-6 space-y-2">
                   {therapistsUsingTag.map(therapist => (
-                    <li key={therapist.id}>
+                    <li key={therapist.id} className="text-gray-700">
                       {therapist.firstName} {therapist.lastName}
                     </li>
                   ))}
                 </ul>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setTagToDelete(null);
+                      setTherapistsUsingTag([]);
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                    disabled={isLoading}
+                  >
+                    Zamknij
+                  </button>
+                </div>
               </div>
             ) : (
-              <p className="mb-4">
-                Czy na pewno chcesz usunąć tag "{selectedTag?.name}"?
-              </p>
+              <>
+                <p className="text-gray-600 mb-6">
+                  Czy na pewno chcesz usunąć tag "{tagToDelete?.name}"?
+                </p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setTagToDelete(null);
+                      setTherapistsUsingTag([]);
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                    disabled={isLoading}
+                  >
+                    Anuluj
+                  </button>
+                  <button
+                    onClick={handleDeleteConfirm}
+                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Usuwanie...' : 'Usuń'}
+                  </button>
+                </div>
+              </>
             )}
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={handleCloseDeleteModal}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                disabled={isLoading}
-              >
-                Anuluj
-              </button>
-              {therapistsUsingTag.length === 0 && (
-                <button
-                  onClick={handleDelete}
-                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Usuwanie...' : 'Usuń'}
-                </button>
-              )}
-            </div>
           </div>
         </div>
       )}

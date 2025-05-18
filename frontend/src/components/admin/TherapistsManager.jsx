@@ -22,6 +22,8 @@ const TherapistsManager = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [availableTags, setAvailableTags] = useState([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [therapistToDelete, setTherapistToDelete] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -34,12 +36,10 @@ const TherapistsManager = () => {
         getAllTherapists(),
         getAllTags()
       ]);
-      console.log('Pobrane dane:', { therapists: therapistsData, tags: tagsData });
       setTherapists(therapistsData);
       setAvailableTags(tagsData);
     } catch (error) {
       setError('Błąd podczas pobierania danych');
-      console.error('Error fetching data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -48,8 +48,6 @@ const TherapistsManager = () => {
   const handleOpenModal = (therapist = null) => {
     setSelectedTherapist(therapist);
     if (therapist) {
-      console.log('Otwieranie modalu z terapeutą:', therapist);
-      console.log('Tagi terapeuty:', therapist.Tags);
       setFormData({
         firstName: therapist.firstName,
         lastName: therapist.lastName,
@@ -88,17 +86,12 @@ const TherapistsManager = () => {
     
     if (type === 'checkbox') {
       const tagId = parseInt(value);
-      console.log('Zmiana tagu:', { tagId, checked });
-      setFormData(prev => {
-        const newTags = checked
+      setFormData(prev => ({
+        ...prev,
+        tags: checked
           ? [...prev.tags, tagId]
-          : prev.tags.filter(id => id !== tagId);
-        console.log('Nowe tagi:', newTags);
-        return {
-          ...prev,
-          tags: newTags
-        };
-      });
+          : prev.tags.filter(id => id !== tagId)
+      }));
     } else {
       setFormData(prev => ({
         ...prev,
@@ -119,39 +112,38 @@ const TherapistsManager = () => {
         tags: formData.tags
       };
 
-      console.log('Wysyłane dane terapeuty:', therapistData);
-      console.log('Wybrane tagi:', formData.tags);
-
       if (selectedTherapist) {
-        console.log('Aktualizacja terapeuty:', selectedTherapist.id);
-        const response = await updateTherapist(selectedTherapist.id, therapistData);
-        console.log('Odpowiedź serwera:', response);
+        await updateTherapist(selectedTherapist.id, therapistData);
       } else {
-        console.log('Tworzenie nowego terapeuty');
-        const response = await createTherapist(therapistData);
-        console.log('Odpowiedź serwera:', response);
+        await createTherapist(therapistData);
       }
 
       await fetchData();
       handleCloseModal();
     } catch (error) {
-      console.error('Błąd podczas zapisywania terapeuty:', error);
       setError(error.message || 'Wystąpił błąd podczas zapisywania terapeuty');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Czy na pewno chcesz usunąć tego terapeutę?')) {
+  const handleDeleteClick = (therapist) => {
+    setTherapistToDelete(therapist);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (therapistToDelete) {
       try {
         setIsLoading(true);
-        await deleteTherapist(id);
+        await deleteTherapist(therapistToDelete.id);
         await fetchData();
       } catch (error) {
         setError('Błąd podczas usuwania terapeuty');
       } finally {
         setIsLoading(false);
+        setShowDeleteConfirm(false);
+        setTherapistToDelete(null);
       }
     }
   };
@@ -210,7 +202,7 @@ const TherapistsManager = () => {
                   <PencilIcon className="h-5 w-5" />
                 </button>
                 <button
-                  onClick={() => handleDelete(therapist.id)}
+                  onClick={() => handleDeleteClick(therapist)}
                   className="text-red-500 hover:text-red-700"
                   disabled={isLoading}
                 >
@@ -225,62 +217,62 @@ const TherapistsManager = () => {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">
+            <h3 className="text-xl font-bold mb-6">
               {selectedTherapist ? 'Edytuj Terapeutę' : 'Dodaj Terapeutę'}
             </h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Imię</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Imię</label>
                 <input
                   type="text"
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   required
                   disabled={isLoading}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Nazwisko</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nazwisko</label>
                 <input
                   type="text"
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   required
                   disabled={isLoading}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Specjalizacja</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Specjalizacja</label>
                 <input
                   type="text"
                   name="specialization"
                   value={formData.specialization}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   required
                   disabled={isLoading}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Opis</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Opis</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  rows="3"
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  rows="4"
                   disabled={isLoading}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
                   Tagi
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {availableTags.map(tag => (
                     <div key={tag.id} className="flex items-center">
                       <input
@@ -317,6 +309,33 @@ const TherapistsManager = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4">Potwierdź usunięcie</h3>
+            <p className="text-gray-600 mb-6">
+              Czy na pewno chcesz usunąć terapeutę {therapistToDelete?.firstName} {therapistToDelete?.lastName}?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                disabled={isLoading}
+              >
+                Anuluj
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Usuwanie...' : 'Usuń'}
+              </button>
+            </div>
           </div>
         </div>
       )}
