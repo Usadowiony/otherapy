@@ -18,6 +18,11 @@ const Quiz = sequelize.define('Quiz', {
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  welcomePage: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+    defaultValue: 'Witaj w quizie! Kliknij "Rozpocznij", aby przejść do pierwszego pytania.'
   }
 });
 
