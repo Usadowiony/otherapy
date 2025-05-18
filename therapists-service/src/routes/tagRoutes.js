@@ -5,6 +5,8 @@ const { verifyToken } = require('../middleware/authMiddleware');
 
 // Publiczne endpointy
 router.get('/', tagController.getAllTags);
+router.get('/:id/therapists', tagController.getTherapistsUsingTag);
+router.post('/init', tagController.initTags);
 
 // Chronione endpointy (tylko dla admina)
 router.post('/', verifyToken, tagController.createTag);

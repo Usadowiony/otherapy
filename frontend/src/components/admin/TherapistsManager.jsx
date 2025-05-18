@@ -10,7 +10,6 @@ import {
 
 const TherapistsManager = () => {
   const [therapists, setTherapists] = useState([]);
-  const [tags, setTags] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTherapist, setSelectedTherapist] = useState(null);
   const [formData, setFormData] = useState({
@@ -18,10 +17,11 @@ const TherapistsManager = () => {
     lastName: '',
     specialization: '',
     description: '',
-    selectedTags: []
+    tags: []
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [availableTags, setAvailableTags] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -34,8 +34,9 @@ const TherapistsManager = () => {
         getAllTherapists(),
         getAllTags()
       ]);
+      console.log('Pobrane dane:', { therapists: therapistsData, tags: tagsData });
       setTherapists(therapistsData);
-      setTags(tagsData);
+      setAvailableTags(tagsData);
     } catch (error) {
       setError('Błąd podczas pobierania danych');
       console.error('Error fetching data:', error);
@@ -47,12 +48,14 @@ const TherapistsManager = () => {
   const handleOpenModal = (therapist = null) => {
     setSelectedTherapist(therapist);
     if (therapist) {
+      console.log('Otwieranie modalu z terapeutą:', therapist);
+      console.log('Tagi terapeuty:', therapist.Tags);
       setFormData({
         firstName: therapist.firstName,
         lastName: therapist.lastName,
         specialization: therapist.specialization,
         description: therapist.description || '',
-        selectedTags: therapist.tags?.map(tag => tag.id) || []
+        tags: therapist.Tags?.map(tag => tag.id) || []
       });
     } else {
       setFormData({
@@ -60,7 +63,7 @@ const TherapistsManager = () => {
         lastName: '',
         specialization: '',
         description: '',
-        selectedTags: []
+        tags: []
       });
     }
     setError('');
@@ -75,26 +78,33 @@ const TherapistsManager = () => {
       lastName: '',
       specialization: '',
       description: '',
-      selectedTags: []
+      tags: []
     });
     setError('');
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleTagChange = (tagId) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedTags: prev.selectedTags.includes(tagId)
-        ? prev.selectedTags.filter(id => id !== tagId)
-        : [...prev.selectedTags, tagId]
-    }));
+    const { name, value, type, checked } = e.target;
+    
+    if (type === 'checkbox') {
+      const tagId = parseInt(value);
+      console.log('Zmiana tagu:', { tagId, checked });
+      setFormData(prev => {
+        const newTags = checked
+          ? [...prev.tags, tagId]
+          : prev.tags.filter(id => id !== tagId);
+        console.log('Nowe tagi:', newTags);
+        return {
+          ...prev,
+          tags: newTags
+        };
+      });
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -106,18 +116,26 @@ const TherapistsManager = () => {
         lastName: formData.lastName,
         specialization: formData.specialization,
         description: formData.description,
-        tagIds: formData.selectedTags
+        tags: formData.tags
       };
 
+      console.log('Wysyłane dane terapeuty:', therapistData);
+      console.log('Wybrane tagi:', formData.tags);
+
       if (selectedTherapist) {
-        await updateTherapist(selectedTherapist.id, therapistData);
+        console.log('Aktualizacja terapeuty:', selectedTherapist.id);
+        const response = await updateTherapist(selectedTherapist.id, therapistData);
+        console.log('Odpowiedź serwera:', response);
       } else {
-        await createTherapist(therapistData);
+        console.log('Tworzenie nowego terapeuty');
+        const response = await createTherapist(therapistData);
+        console.log('Odpowiedź serwera:', response);
       }
 
       await fetchData();
       handleCloseModal();
     } catch (error) {
+      console.error('Błąd podczas zapisywania terapeuty:', error);
       setError(error.message || 'Wystąpił błąd podczas zapisywania terapeuty');
     } finally {
       setIsLoading(false);
@@ -174,7 +192,7 @@ const TherapistsManager = () => {
                 <p className="text-gray-500 mb-4">{therapist.description}</p>
               )}
               <div className="flex flex-wrap gap-2 mb-4">
-                {therapist.tags?.map(tag => (
+                {therapist.Tags?.map(tag => (
                   <span
                     key={tag.id}
                     className="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded"
@@ -210,71 +228,75 @@ const TherapistsManager = () => {
             <h3 className="text-xl font-bold mb-4">
               {selectedTherapist ? 'Edytuj Terapeutę' : 'Dodaj Terapeutę'}
             </h3>
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Imię</label>
-                  <input
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Nazwisko</label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Specjalizacja</label>
-                  <input
-                    type="text"
-                    name="specialization"
-                    value={formData.specialization}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Opis</label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    rows="3"
-                    disabled={isLoading}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tagi</label>
-                  <div className="space-y-2">
-                    {tags.map(tag => (
-                      <label key={tag.id} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={formData.selectedTags.includes(tag.id)}
-                          onChange={() => handleTagChange(tag.id)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          disabled={isLoading}
-                        />
-                        <span className="ml-2">{tag.name}</span>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Imię</label>
+                <input
+                  type="text"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nazwisko</label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Specjalizacja</label>
+                <input
+                  type="text"
+                  name="specialization"
+                  value={formData.specialization}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Opis</label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  rows="3"
+                  disabled={isLoading}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tagi
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {availableTags.map(tag => (
+                    <div key={tag.id} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id={`tag-${tag.id}`}
+                        name="tags"
+                        value={tag.id}
+                        checked={formData.tags.includes(tag.id)}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor={`tag-${tag.id}`} className="ml-2 block text-sm text-gray-900">
+                        {tag.name}
                       </label>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-3">

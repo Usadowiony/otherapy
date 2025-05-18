@@ -22,8 +22,8 @@ const initDatabase = async () => {
     await sequelize.authenticate();
     console.log('Database connection has been established successfully.');
     
-    // Synchronizujemy modele
-    await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
+    // Synchronizujemy modele bez alteracji (zachowujemy dane)
+    await sequelize.sync();
     console.log('Database synchronized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);

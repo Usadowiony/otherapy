@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import TherapistsManager from '../components/admin/TherapistsManager';
+import TagsManager from '../components/admin/TagsManager';
 
 const AdminPanelPage = () => {
   const [activeTab, setActiveTab] = useState('therapists');
@@ -39,12 +40,7 @@ const AdminPanelPage = () => {
           {/* Zawartość zakładek */}
           <div className="p-6">
             {activeTab === 'therapists' && <TherapistsManager />}
-            {activeTab === 'tags' && (
-              <div>
-                <h2 className="text-lg font-medium text-gray-900 mb-4">Zarządzanie tagami</h2>
-                {/* Tutaj będzie komponent do zarządzania tagami */}
-              </div>
-            )}
+            {activeTab === 'tags' && <TagsManager />}
             {activeTab === 'quiz' && (
               <div>
                 <h2 className="text-lg font-medium text-gray-900 mb-4">Zarządzanie quizem</h2>

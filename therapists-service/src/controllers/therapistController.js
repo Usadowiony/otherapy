@@ -3,14 +3,22 @@ const { Therapist, Tag } = require('../models');
 // Pobierz wszystkich terapeutów
 exports.getAllTherapists = async (req, res) => {
   try {
+    console.log('Pobieranie wszystkich terapeutów...');
     const therapists = await Therapist.findAll({
       include: [{
         model: Tag,
         through: { attributes: [] }
       }]
     });
+    console.log('Znalezieni terapeuci:', therapists.map(t => ({
+      id: t.id,
+      firstName: t.firstName,
+      lastName: t.lastName,
+      tags: t.Tags
+    })));
     res.json(therapists);
   } catch (error) {
+    console.error('Błąd podczas pobierania terapeutów:', error);
     res.status(500).json({ message: 'Error fetching therapists', error: error.message });
   }
 };
@@ -38,6 +46,8 @@ exports.createTherapist = async (req, res) => {
   try {
     const { firstName, lastName, specialization, description, tags } = req.body;
     
+    console.log('Otrzymane dane terapeuty:', { firstName, lastName, specialization, description, tags });
+    
     // Walidacja tylko wymaganych pól
     if (!firstName || !lastName || !specialization) {
       return res.status(400).json({ 
@@ -57,8 +67,11 @@ exports.createTherapist = async (req, res) => {
       description
     });
 
+    console.log('Utworzony terapeuta:', therapist.toJSON());
+
     // Tagi są opcjonalne - dodaj tylko jeśli zostały przekazane
     if (tags && Array.isArray(tags) && tags.length > 0) {
+      console.log('Przypisywanie tagów:', tags);
       await therapist.setTags(tags);
     }
 
@@ -69,8 +82,10 @@ exports.createTherapist = async (req, res) => {
       }]
     });
 
+    console.log('Terapeuta z tagami:', createdTherapist.toJSON());
     res.status(201).json(createdTherapist);
   } catch (error) {
+    console.error('Błąd podczas tworzenia terapeuty:', error);
     res.status(500).json({ message: 'Error creating therapist', error: error.message });
   }
 };
@@ -79,6 +94,8 @@ exports.createTherapist = async (req, res) => {
 exports.updateTherapist = async (req, res) => {
   try {
     const { firstName, lastName, specialization, description, tags } = req.body;
+    console.log('Otrzymane dane do aktualizacji:', { firstName, lastName, specialization, description, tags });
+    
     const therapist = await Therapist.findByPk(req.params.id);
 
     if (!therapist) {
@@ -104,8 +121,11 @@ exports.updateTherapist = async (req, res) => {
       description
     });
 
+    console.log('Zaktualizowany terapeuta:', therapist.toJSON());
+
     // Tagi są opcjonalne - aktualizuj tylko jeśli zostały przekazane
     if (tags !== undefined) {
+      console.log('Aktualizacja tagów:', tags);
       await therapist.setTags(tags || []);
     }
 
@@ -116,8 +136,10 @@ exports.updateTherapist = async (req, res) => {
       }]
     });
 
+    console.log('Terapeuta po aktualizacji z tagami:', updatedTherapist.toJSON());
     res.json(updatedTherapist);
   } catch (error) {
+    console.error('Błąd podczas aktualizacji terapeuty:', error);
     res.status(500).json({ message: 'Error updating therapist', error: error.message });
   }
 };
