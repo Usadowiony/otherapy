@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { getAllTags, createTag, updateTag, deleteTag, getTherapistsUsingTag } from '../../services/tagService';
+import { getAllTags, createTag, updateTag, deleteTag, getTherapistsUsingTag, setGlobalAuthErrorHandler } from '../../services/tagService';
+import { useAdminAuth } from './AdminAuthProvider';
 
 const TagsManager = () => {
   const [tags, setTags] = useState([]);
@@ -14,6 +15,12 @@ const TagsManager = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [tagToDelete, setTagToDelete] = useState(null);
   const [therapistsUsingTag, setTherapistsUsingTag] = useState([]);
+  const { sessionExpired, handleApiAuthError } = useAdminAuth();
+
+  useEffect(() => {
+    setGlobalAuthErrorHandler(handleApiAuthError);
+    return () => setGlobalAuthErrorHandler(null);
+  }, [handleApiAuthError]);
 
   useEffect(() => {
     fetchTags();
@@ -114,6 +121,11 @@ const TagsManager = () => {
 
   return (
     <div className="p-4">
+      {sessionExpired && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+          Sesja administratora wygasła z powodu braku aktywności. Zaloguj się ponownie.
+        </div>
+      )}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Zarządzanie Tagami</h2>
         <button
@@ -267,4 +279,4 @@ const TagsManager = () => {
   );
 };
 
-export default TagsManager; 
+export default TagsManager;

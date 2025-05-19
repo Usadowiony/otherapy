@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useAdminAuth } from '../components/admin/AdminAuthProvider';
 
 const API_URL = 'http://localhost:3003/api';
 
@@ -15,10 +16,22 @@ const getAuthConfig = () => {
   };
 };
 
+// Globalny handler błędów autoryzacji
+let globalAuthErrorHandler = null;
+export const setGlobalAuthErrorHandler = (handler) => {
+  globalAuthErrorHandler = handler;
+};
+
 // Obsługa błędów
 const handleError = (error) => {
   if (error.response) {
-    // Serwer odpowiedział z kodem błędu
+    if (
+      error.response.status === 401 ||
+      error.response.status === 403 ||
+      error.response.data?.message?.toLowerCase().includes('token')
+    ) {
+      if (globalAuthErrorHandler) globalAuthErrorHandler();
+    }
     throw new Error(error.response.data.message || 'Wystąpił błąd serwera');
   } else if (error.request) {
     // Nie otrzymano odpowiedzi
@@ -88,4 +101,4 @@ export const deleteTag = async (id) => {
   } catch (error) {
     handleError(error);
   }
-}; 
+};

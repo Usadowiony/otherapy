@@ -5,8 +5,10 @@ import {
   getAllTags,
   createTherapist,
   updateTherapist,
-  deleteTherapist
+  deleteTherapist,
+  setGlobalAuthErrorHandler
 } from '../../services/therapistService';
+import { useAdminAuth } from './AdminAuthProvider';
 
 const TherapistsManager = () => {
   const [therapists, setTherapists] = useState([]);
@@ -24,6 +26,12 @@ const TherapistsManager = () => {
   const [availableTags, setAvailableTags] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [therapistToDelete, setTherapistToDelete] = useState(null);
+  const { sessionExpired, handleApiAuthError } = useAdminAuth();
+
+  useEffect(() => {
+    setGlobalAuthErrorHandler(handleApiAuthError);
+    return () => setGlobalAuthErrorHandler(null);
+  }, [handleApiAuthError]);
 
   useEffect(() => {
     fetchData();
@@ -150,6 +158,11 @@ const TherapistsManager = () => {
 
   return (
     <div className="p-4">
+      {sessionExpired && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+          Sesja administratora wygasła z powodu braku aktywności. Zaloguj się ponownie.
+        </div>
+      )}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Zarządzanie Terapeutami</h2>
         <button
@@ -343,4 +356,4 @@ const TherapistsManager = () => {
   );
 };
 
-export default TherapistsManager; 
+export default TherapistsManager;

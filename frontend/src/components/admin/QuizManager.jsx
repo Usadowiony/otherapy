@@ -3,7 +3,8 @@ import Welcome from "../quiz/Welcome";
 import { getAllQuizzes } from "../../services/quizService";
 import { getQuestionsForQuiz, createQuestion, updateQuestion, deleteQuestion } from "../../services/questionService";
 import { createAnswer, updateAnswer, deleteAnswer } from "../../services/answerService";
-import { getAllTags, createTag } from "../../services/tagService";
+import { getAllTags, createTag, setGlobalAuthErrorHandler } from "../../services/tagService";
+import { useAdminAuth } from './AdminAuthProvider';
 
 const EditQuestionModal = ({ open, onClose, onSave, initialText }) => {
   const [text, setText] = useState(initialText || "");
@@ -149,6 +150,12 @@ const QuizManager = () => {
   const [validationError, setValidationError] = useState("");
   const scrollContainerRef = useRef(null);
   const [availableTags, setAvailableTags] = useState([]);
+  const { sessionExpired, handleApiAuthError } = useAdminAuth();
+
+  useEffect(() => {
+    setGlobalAuthErrorHandler(handleApiAuthError);
+    return () => setGlobalAuthErrorHandler(null);
+  }, [handleApiAuthError]);
 
   // Pobierz quiz i pytania z bazy
   useEffect(() => {
@@ -307,110 +314,117 @@ const QuizManager = () => {
   };
 
   return (
-    <div className="p-4 pb-32">
-      <h2 className="text-2xl font-bold mb-4">Zarządzanie quizem</h2>
-      <div className="mb-6 border rounded-lg p-4 bg-gray-50">
-        <h3 className="font-semibold mb-2">Strona powitalna (nieedytowalna)</h3>
-        <Welcome onStart={() => {}} />
-      </div>
-      {!quiz ? (
-        <div className="mb-6 border rounded-lg p-4 bg-white text-center text-red-600 font-semibold">
-          Quiz nie został jeszcze utworzony. Skontaktuj się z administratorem lub utwórz quiz w backendzie.
+    <div className="p-4">
+      {sessionExpired && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+          Sesja administratora wygasła z powodu braku aktywności. Zaloguj się ponownie.
         </div>
-      ) : draftQuestions.length === 0 ? (
-        <div className="mb-6 border rounded-lg p-4 bg-white text-center">
-          <p className="mb-4 text-gray-500">Brak pytań w quizie. Dodaj pierwsze pytanie!</p>
-          <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={handleAddQuestion}>Dodaj pierwsze pytanie</button>
+      )}
+      <div className="p-4 pb-32">
+        <h2 className="text-2xl font-bold mb-4">Zarządzanie quizem</h2>
+        <div className="mb-6 border rounded-lg p-4 bg-gray-50">
+          <h3 className="font-semibold mb-2">Strona powitalna (nieedytowalna)</h3>
+          <Welcome onStart={() => {}} />
         </div>
-      ) : (
-        <div className="relative">
-          <div ref={scrollContainerRef} style={{ maxHeight: '70vh', overflowY: 'auto', overflowX: 'hidden' }}>
-            {draftQuestions.map((q, idx) => (
-              <div
-                key={q.id || q.localId}
-                className="mb-6 border rounded-lg p-4 bg-white transition-shadow select-none hover:bg-blue-50"
-                style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', userSelect: 'none' }}
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold">Pytanie {idx + 1}:</h3>
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="text-blue-600 hover:underline" onClick={() => handleEditQuestion(idx)}>Edytuj</button>
-                    <button className="text-red-600 hover:underline" onClick={() => handleDeleteQuestion(idx)}>Usuń</button>
-                  </div>
-                </div>
-                <div className="mb-2">{q.text}</div>
-                <ul className="list-disc ml-6">
-                  {q.answers.map((ans, aIdx) => (
-                    <li key={ans.id || `draft-a-${aIdx}`} className="mb-1 flex items-center gap-2">
-                      <span>{ans.text}</span>
-                      <button className="text-blue-600 hover:underline text-xs" onClick={() => handleEditAnswer(idx, aIdx)}>Edytuj</button>
-                      <button className="text-red-600 hover:underline text-xs" onClick={() => handleDeleteAnswer(idx, aIdx)}>Usuń</button>
-                    </li>
-                  ))}
-                </ul>
-                <button className="mt-2 px-3 py-1 bg-green-600 text-white rounded" onClick={() => handleAddAnswer(idx)}>Dodaj odpowiedź</button>
-                {/* Strzałki przesuwania */}
-                <div className="flex gap-2 justify-end mt-4">
-                  {idx > 0 && (
-                    <button
-                      className="p-1 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
-                      title="Przesuń wyżej"
-                      onClick={() => moveQuestion(idx, idx - 1)}
-                      style={{ fontSize: 18 }}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                    </button>
-                  )}
-                  {idx < draftQuestions.length - 1 && (
-                    <button
-                      className="p-1 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
-                      title="Przesuń niżej"
-                      onClick={() => moveQuestion(idx, idx + 1)}
-                      style={{ fontSize: 18 }}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+        {!quiz ? (
+          <div className="mb-6 border rounded-lg p-4 bg-white text-center text-red-600 font-semibold">
+            Quiz nie został jeszcze utworzony. Skontaktuj się z administratorem lub utwórz quiz w backendzie.
           </div>
-        </div>
-      )}
-      {/* Walidacja */}
-      {validationError && (
-        <div className="mt-4 mb-2 text-red-600 font-semibold text-center">{validationError}</div>
-      )}
-      {/* Przyciski na dole */}
-      {quiz && draftQuestions.length > 0 && (
-        <div className="flex justify-center gap-4 mt-8 mb-2">
-          <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={handleAddQuestion}>Dodaj nowe pytanie</button>
-          <button
-            className={`px-4 py-2 rounded text-white ${hasChanges ? 'bg-blue-600' : 'bg-gray-400 cursor-not-allowed'}`}
-            onClick={handleSaveAll}
-            disabled={!hasChanges}
-          >
-            Zapisz zmiany
-          </button>
-        </div>
-      )}
-      {/* Modale */}
-      <EditQuestionModal
-        open={showQModal}
-        onClose={() => setShowQModal(false)}
-        onSave={handleSaveQuestion}
-        initialText={editQIdx !== null && draftQuestions[editQIdx] ? draftQuestions[editQIdx].text : ""}
-      />
-      <EditAnswerModal
-        open={showAModal}
-        onClose={() => setShowAModal(false)}
-        onSave={handleSaveAnswer}
-        initialText={editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.text ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].text : ""}
-        initialTags={editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.tags ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].tags : []}
-        availableTags={availableTags}
-      />
+        ) : draftQuestions.length === 0 ? (
+          <div className="mb-6 border rounded-lg p-4 bg-white text-center">
+            <p className="mb-4 text-gray-500">Brak pytań w quizie. Dodaj pierwsze pytanie!</p>
+            <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={handleAddQuestion}>Dodaj pierwsze pytanie</button>
+          </div>
+        ) : (
+          <div className="relative">
+            <div ref={scrollContainerRef} style={{ maxHeight: '70vh', overflowY: 'auto', overflowX: 'hidden' }}>
+              {draftQuestions.map((q, idx) => (
+                <div
+                  key={q.id || q.localId}
+                  className="mb-6 border rounded-lg p-4 bg-white transition-shadow select-none hover:bg-blue-50"
+                  style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', userSelect: 'none' }}
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">Pytanie {idx + 1}:</h3>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="text-blue-600 hover:underline" onClick={() => handleEditQuestion(idx)}>Edytuj</button>
+                      <button className="text-red-600 hover:underline" onClick={() => handleDeleteQuestion(idx)}>Usuń</button>
+                    </div>
+                  </div>
+                  <div className="mb-2">{q.text}</div>
+                  <ul className="list-disc ml-6">
+                    {q.answers.map((ans, aIdx) => (
+                      <li key={ans.id || `draft-a-${aIdx}`} className="mb-1 flex items-center gap-2">
+                        <span>{ans.text}</span>
+                        <button className="text-blue-600 hover:underline text-xs" onClick={() => handleEditAnswer(idx, aIdx)}>Edytuj</button>
+                        <button className="text-red-600 hover:underline text-xs" onClick={() => handleDeleteAnswer(idx, aIdx)}>Usuń</button>
+                      </li>
+                    ))}
+                  </ul>
+                  <button className="mt-2 px-3 py-1 bg-green-600 text-white rounded" onClick={() => handleAddAnswer(idx)}>Dodaj odpowiedź</button>
+                  {/* Strzałki przesuwania */}
+                  <div className="flex gap-2 justify-end mt-4">
+                    {idx > 0 && (
+                      <button
+                        className="p-1 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
+                        title="Przesuń wyżej"
+                        onClick={() => moveQuestion(idx, idx - 1)}
+                        style={{ fontSize: 18 }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                      </button>
+                    )}
+                    {idx < draftQuestions.length - 1 && (
+                      <button
+                        className="p-1 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
+                        title="Przesuń niżej"
+                        onClick={() => moveQuestion(idx, idx + 1)}
+                        style={{ fontSize: 18 }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Walidacja */}
+        {validationError && (
+          <div className="mt-4 mb-2 text-red-600 font-semibold text-center">{validationError}</div>
+        )}
+        {/* Przyciski na dole */}
+        {quiz && draftQuestions.length > 0 && (
+          <div className="flex justify-center gap-4 mt-8 mb-2">
+            <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={handleAddQuestion}>Dodaj nowe pytanie</button>
+            <button
+              className={`px-4 py-2 rounded text-white ${hasChanges ? 'bg-blue-600' : 'bg-gray-400 cursor-not-allowed'}`}
+              onClick={handleSaveAll}
+              disabled={!hasChanges}
+            >
+              Zapisz zmiany
+            </button>
+          </div>
+        )}
+        {/* Modale */}
+        <EditQuestionModal
+          open={showQModal}
+          onClose={() => setShowQModal(false)}
+          onSave={handleSaveQuestion}
+          initialText={editQIdx !== null && draftQuestions[editQIdx] ? draftQuestions[editQIdx].text : ""}
+        />
+        <EditAnswerModal
+          open={showAModal}
+          onClose={() => setShowAModal(false)}
+          onSave={handleSaveAnswer}
+          initialText={editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.text ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].text : ""}
+          initialTags={editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.tags ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].tags : []}
+          availableTags={availableTags}
+        />
+      </div>
     </div>
   );
 };
