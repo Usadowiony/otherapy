@@ -3,7 +3,7 @@ import axios from "axios";
 const API_URL = "http://localhost:3004";
 
 export const saveQuizDraft = async (quizId, draftData) => {
-  const res = await axios.post(`${API_URL}/api/quiz-drafts/${quizId}`, { data: draftData });
+  const res = await axios.post(`${API_URL}/api/quiz-drafts/${quizId}`, draftData);
   return res.data;
 };
 

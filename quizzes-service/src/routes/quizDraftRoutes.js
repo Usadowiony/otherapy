@@ -9,6 +9,11 @@ router.post('/:quizId', async (req, res) => {
   if (!name || !author || !questions) {
     return res.status(400).json({ error: 'Wymagane: name, author, questions' });
   }
+  // Walidacja unikalności nazwy draftu dla quizu
+  const exists = await QuizDraft.findOne({ where: { quizId: req.params.quizId, name } });
+  if (exists) {
+    return res.status(409).json({ error: 'Draft o takiej nazwie już istnieje dla tego quizu.' });
+  }
   const draft = await QuizDraft.create({ quizId: req.params.quizId, data: { questions }, name, author });
   res.status(201).json(draft);
 });
@@ -34,6 +39,17 @@ router.put('/:quizId/:draftId', async (req, res) => {
   const { name, author, questions } = req.body;
   if (!name || !author || !questions) {
     return res.status(400).json({ error: 'Wymagane: name, author, questions' });
+  }
+  // Walidacja unikalności nazwy draftu dla quizu (z wykluczeniem aktualizowanego draftu)
+  const exists = await QuizDraft.findOne({
+    where: {
+      quizId: req.params.quizId,
+      name,
+      id: { [Op.ne]: req.params.draftId }
+    }
+  });
+  if (exists) {
+    return res.status(409).json({ error: 'Draft o takiej nazwie już istnieje dla tego quizu.' });
   }
   const draft = await QuizDraft.findOne({ where: { id: req.params.draftId, quizId: req.params.quizId } });
   if (!draft) return res.status(404).json({ error: 'Draft not found' });

@@ -4,15 +4,14 @@ const sequelize = require('./src/config/database');
 
 async function seedQuiz() {
   await sequelize.sync();
-  const [quiz, created] = await Quiz.findOrCreate({
-    where: { title: 'Quiz psychologiczny' },
-    defaults: {
+  // Jeśli nie istnieje żaden quiz, utwórz domyślny pusty quiz
+  const count = await Quiz.count();
+  if (count === 0) {
+    await Quiz.create({
       title: 'Quiz psychologiczny',
       description: 'Quiz do dopasowywania terapeutów na podstawie odpowiedzi.'
-    }
-  });
-  if (created) {
-    console.log('Quiz został utworzony.');
+    });
+    console.log('Pusty quiz został utworzony.');
   } else {
     console.log('Quiz już istnieje.');
   }
