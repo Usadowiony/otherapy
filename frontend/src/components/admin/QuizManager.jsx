@@ -449,8 +449,18 @@ const QuizManager = forwardRef((props, ref) => {
 
   // Nowa funkcja: zapisuje draft do bazy przez mikroserwis
   const handleSaveDraft = () => {
+    // Walidacja: każde pytanie musi mieć co najmniej 2 odpowiedzi
+    const invalidIndexes = draftQuestions
+      .map((q, idx) => (!q.answers || q.answers.length < 2 ? idx + 1 : null))
+      .filter(idx => idx !== null);
+    if (invalidIndexes.length > 0) {
+      setValidationError(`Pytanie${invalidIndexes.length > 1 ? ' ' : ' '}${invalidIndexes.join(', ')} musi mieć co najmniej 2 odpowiedzi.`);
+      return;
+    }
+    setValidationError("");
     setShowSaveDraftModal(true);
   };
+
   const handleSaveDraftWithMeta = async ({ mode, name, author }) => {
     if (!quiz) return;
     setIsSaving(true);
