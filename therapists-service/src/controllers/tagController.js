@@ -67,6 +67,21 @@ exports.deleteTag = async (req, res) => {
   }
 };
 
+// Usuń powiązania tagu z wszystkimi terapeutami (kaskadowo)
+exports.removeTagFromAllTherapists = async (req, res) => {
+  try {
+    const tag = await Tag.findByPk(req.params.id);
+    if (!tag) {
+      return res.status(404).json({ message: 'Tag not found' });
+    }
+    // Usuń wszystkie powiązania tagu z terapeutami
+    await tag.setTherapists([]);
+    res.json({ message: 'Tag removed from all therapists' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error removing tag from therapists', error: error.message });
+  }
+};
+
 // Sprawdź terapeutów używających tagu
 exports.getTherapistsUsingTag = async (req, res) => {
   try {
@@ -116,4 +131,4 @@ exports.initTags = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Error initializing tags', error: error.message });
   }
-}; 
+};

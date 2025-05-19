@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react";
 import Welcome from "../quiz/Welcome";
-import { getAllQuizzes } from "../../services/quizService";
+import { getAllQuizzes, getQuiz, updateQuiz } from "../../services/quizService";
 import { getQuestionsForQuiz, createQuestion, updateQuestion, deleteQuestion } from "../../services/questionService";
 import { createAnswer, updateAnswer, deleteAnswer } from "../../services/answerService";
 import { getAllTags, createTag, setGlobalAuthErrorHandler } from "../../services/tagService";
 import { useAdminAuth } from './AdminAuthProvider';
+import { saveQuizDraft, getQuizDrafts, getQuizDraft, deleteQuizDraft, updateQuizDraft } from '../../services/quizDraftService';
 
 const EditQuestionModal = ({ open, onClose, onSave, initialText }) => {
   const [text, setText] = useState(initialText || "");
@@ -139,7 +140,104 @@ const EditAnswerModal = ({ open, onClose, onSave, initialText, initialTags = [],
   ) : null;
 };
 
-const QuizManager = () => {
+// Modal do zapisu draftu z nazwą i autorem
+const SaveDraftModal = ({ open, onClose, onSave, loadedDraft, isPublishedDraft, allDrafts }) => {
+  const [mode, setMode] = useState('new'); // 'overwrite' lub 'new'
+  const [name, setName] = useState(loadedDraft?.name || "");
+  const [author, setAuthor] = useState(loadedDraft?.author || "");
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (open) {
+      setMode(loadedDraft && !isPublishedDraft ? 'overwrite' : 'new');
+      setName(loadedDraft?.name || "");
+      setAuthor(loadedDraft?.author || "");
+      setError("");
+    }
+  }, [open, loadedDraft, isPublishedDraft]);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (mode === 'new') {
+      if (!name.trim() || !author.trim()) {
+        setError("Nazwa i autor są wymagane");
+        return;
+      }
+      // Walidacja unikalności nazw (case-sensitive, nie identyczne)
+      const exists = allDrafts?.some(d => d.name.trim() === name.trim());
+      if (exists) {
+        setError("Draft o takiej nazwie już istnieje. Nazwy muszą być unikalne.");
+        return;
+      }
+    }
+    onSave({ mode, name, author });
+  };
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded shadow-lg max-w-md w-full">
+        {loadedDraft && (
+          <div className="mb-4">
+            <div className="font-semibold text-gray-700 mb-1">Zapisz zmiany:</div>
+            <label className="flex items-center gap-2 mb-1">
+              <input
+                type="radio"
+                checked={mode === 'overwrite'}
+                onChange={() => setMode('overwrite')}
+                disabled={isPublishedDraft}
+              />
+              <span className={isPublishedDraft ? 'text-gray-400' : ''}>Nadpisz aktualny draft</span>
+              {isPublishedDraft && <span className="text-xs text-gray-400">(nie można nadpisać opublikowanego draftu)</span>}
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                checked={mode === 'new'}
+                onChange={() => setMode('new')}
+              />
+              <span>Zapisz jako nowy draft</span>
+            </label>
+          </div>
+        )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === 'new' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1">Nazwa wersji</label>
+                <input className="border p-2 w-full rounded" value={name} onChange={e => setName(e.target.value)} required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Autor</label>
+                <input className="border p-2 w-full rounded" value={author} onChange={e => setAuthor(e.target.value)} required />
+              </div>
+            </>
+          )}
+          {error && <div className="text-red-600 text-xs">{error}</div>}
+          <div className="flex gap-2 justify-end mt-4">
+            <button type="button" className="px-3 py-1 bg-gray-200 rounded" onClick={onClose}>Anuluj</button>
+            <button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded">Zapisz</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// --- helper: porównanie draftu z quizem opublikowanym ---
+function areQuestionsEqual(q1, q2) {
+  if (!Array.isArray(q1) || !Array.isArray(q2) || q1.length !== q2.length) return false;
+  for (let i = 0; i < q1.length; ++i) {
+    const a = q1[i], b = q2[i];
+    if (a.text !== b.text || a.order !== b.order) return false;
+    if (!Array.isArray(a.answers) || !Array.isArray(b.answers) || a.answers.length !== b.answers.length) return false;
+    for (let j = 0; j < a.answers.length; ++j) {
+      const aa = a.answers[j], ba = b.answers[j];
+      if (aa.text !== ba.text || aa.order !== ba.order) return false;
+      // Możesz dodać porównanie tagów jeśli istotne
+    }
+  }
+  return true;
+}
+
+const QuizManager = forwardRef((props, ref) => {
   const [quiz, setQuiz] = useState(null);
   const [draftQuestions, setDraftQuestions] = useState([]); // [{id, text, order, answers: [{id, text, order}]}]
   const [hasChanges, setHasChanges] = useState(false);
@@ -151,36 +249,129 @@ const QuizManager = () => {
   const scrollContainerRef = useRef(null);
   const [availableTags, setAvailableTags] = useState([]);
   const { sessionExpired, handleApiAuthError } = useAdminAuth();
+  const [isSaving, setIsSaving] = useState(false);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const pendingTabRef = useRef(null);
+  const [isDraftSaved, setIsDraftSaved] = useState(true); // nowa flaga
+  const [showSaveDraftModal, setShowSaveDraftModal] = useState(false);
+  const [showDraftsList, setShowDraftsList] = useState(false);
+  const [drafts, setDrafts] = useState([]);
+  const [loadingDrafts, setLoadingDrafts] = useState(false);
+  const [draftToDelete, setDraftToDelete] = useState(null);
+  const [showDeleteDraftModal, setShowDeleteDraftModal] = useState(false);
+  const [draftInUseId, setDraftInUseId] = useState(null); // id draftu aktualnie edytowanego lub opublikowanego
+  const [publishedDraftId, setPublishedDraftId] = useState(null);
+  const [publishedQuestions, setPublishedQuestions] = useState([]);
 
   useEffect(() => {
     setGlobalAuthErrorHandler(handleApiAuthError);
     return () => setGlobalAuthErrorHandler(null);
   }, [handleApiAuthError]);
 
-  // Pobierz quiz i pytania z bazy
+  // Pobierz quiz i drafty z bazy (NIE pobieraj pytań quizu!)
   useEffect(() => {
     const fetchData = async () => {
       const quizzes = await getAllQuizzes();
       if (!quizzes.length) { setQuiz(null); setDraftQuestions([]); return; }
       setQuiz(quizzes[0]);
-      const questions = await getQuestionsForQuiz(quizzes[0].id);
-      setDraftQuestions(
-        questions.sort((a, b) => a.order - b.order).map(q => ({
-          ...q,
-          answers: (q.Answers || []).sort((a, b) => a.order - b.order)
-        }))
-      );
+      // Pobierz najnowszy draft (lub opublikowany, jeśli nie ma draftów)
+      const drafts = await getQuizDrafts(quizzes[0].id);
+      setDrafts(drafts);
+      let draftToLoad = drafts[0];
+      if (quizzes[0].publishedDraftId) {
+        const published = drafts.find(d => d.id === quizzes[0].publishedDraftId);
+        if (published) draftToLoad = published;
+      }
+      if (draftToLoad) {
+        setDraftQuestions(draftToLoad.data.questions);
+        setDraftInUseId(draftToLoad.id);
+        initialStateRef.current = JSON.stringify(draftToLoad.data.questions);
+      } else {
+        setDraftQuestions([]);
+        initialStateRef.current = JSON.stringify([]);
+      }
     };
     fetchData();
     getAllTags().then(setAvailableTags);
   }, []);
 
+  // Pobieranie wersji roboczych quizu (na żądanie)
+  useEffect(() => {
+    if (quiz && showDraftsList) {
+      setLoadingDrafts(true);
+      getQuizDrafts(quiz.id).then(ds => {
+        setDrafts(ds);
+        if (ds.length > 0) setDraftInUseId(ds[0].id);
+      }).finally(() => setLoadingDrafts(false));
+    }
+  }, [quiz, showDraftsList]);
+
+  // Po załadowaniu quizu pobierz opublikowany draft (do porównań)
+  useEffect(() => {
+    if (!quiz) return;
+    setPublishedDraftId(quiz.publishedDraftId);
+    if (quiz.publishedDraftId) {
+      getQuizDrafts(quiz.id).then(ds => {
+        const published = ds.find(d => d.id === quiz.publishedDraftId);
+        setPublishedQuestions(published ? published.data.questions : []);
+      });
+    } else {
+      setPublishedQuestions([]);
+    }
+  }, [quiz]);
+
   // Zmiany?
   const initialStateRef = useRef();
   useEffect(() => {
-    if (!initialStateRef.current) initialStateRef.current = JSON.stringify(draftQuestions);
-    setHasChanges(JSON.stringify(draftQuestions) !== initialStateRef.current);
-  }, [draftQuestions]);
+    if (draftInUseId === publishedDraftId && publishedQuestions.length) {
+      setHasChanges(!areQuestionsEqual(draftQuestions, publishedQuestions));
+    } else {
+      setHasChanges(JSON.stringify(draftQuestions) !== initialStateRef.current);
+    }
+  }, [draftQuestions, publishedQuestions, draftInUseId, publishedDraftId]);
+
+  // Ochrona przed utratą zmian przy odświeżeniu/przeładowaniu strony
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasChanges]);
+
+  // Funkcja do obsługi próby zmiany zakładki (np. w AdminPanelPage)
+  const handleTabChange = (nextTab) => {
+    if (hasChanges) {
+      setShowUnsavedModal(true);
+      pendingTabRef.current = nextTab;
+      return false; // blokuj zmianę tabów
+    }
+    return true; // pozwól na zmianę tabów
+  };
+
+  useImperativeHandle(ref, () => ({
+    handleTabChange
+  }));
+
+  // Funkcja do potwierdzenia porzucenia zmian
+  const confirmLeave = () => {
+    setShowUnsavedModal(false);
+    setHasChanges(false);
+    if (pendingTabRef.current) {
+      // Wywołaj zmianę tabów w AdminPanelPage (trzeba przekazać handleTabChange do propsów)
+      pendingTabRef.current();
+      pendingTabRef.current = null;
+    }
+  };
+
+  // Funkcja do anulowania porzucenia zmian
+  const cancelLeave = () => {
+    setShowUnsavedModal(false);
+    pendingTabRef.current = null;
+  };
 
   // Dodaj funkcję przesuwania pytań
   const moveQuestion = (fromIdx, toIdx) => {
@@ -242,14 +433,74 @@ const QuizManager = () => {
       }
       return { ...q, answers };
     }));
+    setIsDraftSaved(false);
     setShowAModal(false);
   };
+
+  // Usuwanie odpowiedzi
   const handleDeleteAnswer = (qIdx, aIdx) => {
     setDraftQuestions(qs => qs.map((q, i) => {
       if (i !== qIdx) return q;
-      const answers = q.answers.filter((_, j) => j !== aIdx).map((a, j) => ({ ...a, order: j + 1 }));
+      const answers = q.answers.filter((_, idx) => idx !== aIdx).map((a, idx) => ({ ...a, order: idx + 1 }));
       return { ...q, answers };
     }));
+    setIsDraftSaved(false);
+  };
+
+  // Nowa funkcja: zapisuje draft do bazy przez mikroserwis
+  const handleSaveDraft = () => {
+    setShowSaveDraftModal(true);
+  };
+  const handleSaveDraftWithMeta = async ({ mode, name, author }) => {
+    if (!quiz) return;
+    setIsSaving(true);
+    try {
+      if (mode === 'overwrite' && loadedDraft && !isPublishedDraft) {
+        // Nadpisz aktualny draft (PUT)
+        await updateQuizDraft(quiz.id, loadedDraft.id, { name: loadedDraft.name, author: loadedDraft.author, questions: draftQuestions });
+      } else {
+        // Zapisz jako nowy draft (POST)
+        await saveQuizDraft(quiz.id, { name, author, questions: draftQuestions });
+      }
+      // Odśwież drafty i ustaw aktualny draft jako edytowany
+      const drafts = await getQuizDrafts(quiz.id);
+      setDrafts(drafts);
+      setDraftInUseId(drafts[0]?.id);
+      initialStateRef.current = JSON.stringify(draftQuestions);
+      setHasChanges(false);
+      setIsDraftSaved(true);
+      setShowSaveDraftModal(false);
+    } catch (err) {
+      alert('Błąd podczas zapisywania wersji roboczej quizu!');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Publikacja quizu: ustaw publishedDraftId na aktualny draft
+  const handlePublish = async () => {
+    if (!quiz || !draftInUseId) return;
+    setIsSaving(true);
+    try {
+      // Ustaw publishedDraftId w quizie
+      await updateQuiz(quiz.id, { publishedDraftId: draftInUseId });
+      // Odśwież quiz i drafty
+      const refreshedQuiz = await getQuiz(quiz.id);
+      setQuiz(refreshedQuiz);
+      setPublishedDraftId(refreshedQuiz.publishedDraftId);
+      const drafts = await getQuizDrafts(quiz.id);
+      setDrafts(drafts);
+      // Ustaw opublikowane pytania do porównań
+      const published = drafts.find(d => d.id === refreshedQuiz.publishedDraftId);
+      setPublishedQuestions(published ? published.data.questions : []);
+      setHasChanges(false);
+      setIsDraftSaved(true);
+      setValidationError("");
+    } catch (err) {
+      setValidationError('Błąd podczas publikacji: ' + (err?.response?.data?.error || err.message));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Walidacja
@@ -265,53 +516,42 @@ const QuizManager = () => {
     return null;
   };
 
-  // Zapisz zmiany
-  const handleSaveAll = async () => {
-    const err = validateQuiz();
-    if (err) { setValidationError(err); return; }
-    // Najpierw usuń pytania, które zniknęły
-    const quizzes = await getAllQuizzes();
-    const quizId = quizzes[0]?.id;
-    const oldQuestions = await getQuestionsForQuiz(quizId);
-    for (const oldQ of oldQuestions) {
-      if (!draftQuestions.find(q => q.id === oldQ.id)) await deleteQuestion(oldQ.id);
-    }
-    // Dodaj/aktualizuj pytania i odpowiedzi
-    for (const [qIdx, q] of draftQuestions.entries()) {
-      let qId = q.id;
-      if (!qId) {
-        const created = await createQuestion({ quizId, text: q.text, order: q.order });
-        qId = created.id;
-        draftQuestions[qIdx].id = qId;
-      } else {
-        await updateQuestion(qId, { text: q.text, order: q.order });
-      }
-      // Odpowiedzi
-      const oldAnswers = (oldQuestions.find(oq => oq.id === qId)?.Answers || []);
-      for (const oldA of oldAnswers) {
-        if (!q.answers.find(a => a.id === oldA.id)) await deleteAnswer(oldA.id);
-      }
-      for (const [aIdx, a] of q.answers.entries()) {
-        if (!a.id) {
-          const createdA = await createAnswer({ questionId: qId, text: a.text, order: a.order });
-          draftQuestions[qIdx].answers[aIdx].id = createdA.id;
-        } else {
-          await updateAnswer(a.id, { text: a.text, order: a.order });
-        }
-      }
-    }
-    // Odśwież dane
-    const refreshedQuestions = await getQuestionsForQuiz(quizId);
-    setDraftQuestions(
-      refreshedQuestions.sort((a, b) => a.order - b.order).map(q => ({
-        ...q,
-        answers: (q.Answers || []).sort((a, b) => a.order - b.order)
-      }))
-    );
-    initialStateRef.current = JSON.stringify(draftQuestions);
-    setHasChanges(false);
-    setValidationError("");
+  // Obsługa usuwania draftu
+  const handleAskDeleteDraft = (draft) => {
+    setDraftToDelete(draft);
+    setShowDeleteDraftModal(true);
   };
+  const handleDeleteDraft = async () => {
+    if (!draftToDelete) return;
+    try {
+      await deleteQuizDraft(quiz.id, draftToDelete.id); // faktyczne usunięcie w backendzie
+      // Odśwież listę draftów z backendu
+      const ds = await getQuizDrafts(quiz.id);
+      setDrafts(ds);
+    } catch (err) {
+      alert('Błąd podczas usuwania wersji roboczej!');
+    } finally {
+      setShowDeleteDraftModal(false);
+      setDraftToDelete(null);
+    }
+  };
+
+  // Obsługa ładowania draftu
+  const handleLoadDraft = (draft) => {
+    if (hasChanges) {
+      if (!window.confirm('Masz niezapisane zmiany. Czy na pewno chcesz załadować wybraną wersję?')) return;
+    }
+    setDraftQuestions(draft.data.questions);
+    setShowDraftsList(false);
+    setDraftInUseId(draft.id);
+    initialStateRef.current = JSON.stringify(draft.data.questions);
+    setHasChanges(false); // zawsze po załadowaniu draftu brak zmian
+    setIsDraftSaved(true);
+  };
+
+  // Dodaj referencję do aktualnie załadowanego draftu
+  const loadedDraft = drafts.find(d => d.id === draftInUseId) || null;
+  const isPublishedDraft = draftInUseId === publishedDraftId;
 
   return (
     <div className="p-4">
@@ -401,11 +641,25 @@ const QuizManager = () => {
           <div className="flex justify-center gap-4 mt-8 mb-2">
             <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={handleAddQuestion}>Dodaj nowe pytanie</button>
             <button
-              className={`px-4 py-2 rounded text-white ${hasChanges ? 'bg-blue-600' : 'bg-gray-400 cursor-not-allowed'}`}
-              onClick={handleSaveAll}
-              disabled={!hasChanges}
+              className={`px-4 py-2 rounded text-white ${!hasChanges ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'}`}
+              onClick={handleSaveDraft}
+              disabled={!hasChanges || isSaving}
             >
               Zapisz zmiany
+            </button>
+            <button
+              className="px-4 py-2 rounded text-white bg-gray-500"
+              onClick={() => setShowDraftsList(prev => !prev)}
+              disabled={isSaving}
+            >
+              Poprzednie wersje
+            </button>
+            <button
+              className={`px-4 py-2 rounded text-white ${(draftInUseId === publishedDraftId || !isDraftSaved || hasChanges || isSaving) ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600'}`}
+              onClick={handlePublish}
+              disabled={draftInUseId === publishedDraftId || !isDraftSaved || hasChanges || isSaving}
+            >
+              Opublikuj
             </button>
           </div>
         )}
@@ -424,9 +678,105 @@ const QuizManager = () => {
           initialTags={editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.tags ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].tags : []}
           availableTags={availableTags}
         />
+        <SaveDraftModal 
+          open={showSaveDraftModal} 
+          onClose={() => setShowSaveDraftModal(false)} 
+          onSave={handleSaveDraftWithMeta} 
+          loadedDraft={loadedDraft}
+          isPublishedDraft={isPublishedDraft}
+          allDrafts={drafts}
+        />
       </div>
+      {/* Info o aktualnie załadowanym drafcie */}
+      {loadedDraft && (
+        <div className="mb-1 text-xs text-gray-500">
+          Wersja: <span className="font-semibold">{loadedDraft.name}</span> • {loadedDraft.author} • {new Date(loadedDraft.createdAt).toLocaleString()}
+          {isPublishedDraft && <span className="ml-2 text-green-600">[opublikowany]</span>}
+        </div>
+      )}
+      {/* Status zmian */}
+      {hasChanges ? (
+        <div className="mb-2 text-orange-600 font-semibold">Masz niezapisane zmiany!</div>
+      ) : (
+        <div className="mb-2 text-green-700">Wszystkie zmiany zapisane</div>
+      )}
+      {/* Loader na czas zapisu */}
+      {isSaving && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+            <div className="text-blue-700 font-semibold">Zapisywanie zmian...</div>
+          </div>
+        </div>
+      )}
+      {/* Modal ostrzegający o niezapisanych zmianach */}
+      {showUnsavedModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg max-w-md w-full">
+            <h3 className="font-bold mb-2">Masz niezapisane zmiany</h3>
+            <p className="mb-4">Czy na pewno chcesz opuścić edycję quizu? Wszystkie niezapisane zmiany zostaną utracone.</p>
+            <div className="flex gap-3 justify-end">
+              <button className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50" onClick={cancelLeave}>Anuluj</button>
+              <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700" onClick={confirmLeave}>Opuść bez zapisywania</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Lista wersji roboczych */}
+      {showDraftsList && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg max-w-lg w-full">
+            <h3 className="font-bold mb-4">Poprzednie wersje quizu</h3>
+            {loadingDrafts ? (
+              <div className="text-center">Ładowanie...</div>
+            ) : (
+              <ul className="divide-y divide-gray-200 max-h-80 overflow-y-auto">
+                {drafts.map(draft => (
+                  <li key={draft.id} className="flex items-center justify-between py-2">
+                    <div>
+                      <div className="font-semibold">{draft.name}
+                        {publishedDraftId === draft.id && <span className="text-xs text-green-600 ml-2">[opublikowany]</span>}
+                      </div>
+                      <div className="text-xs text-gray-500">{draft.author} • {new Date(draft.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button className="text-blue-600 hover:underline text-xs" onClick={() => handleLoadDraft(draft)}>
+                        Załaduj
+                      </button>
+                      {publishedDraftId !== draft.id && (
+                        <button
+                          className="text-red-500 hover:text-red-700 text-xs"
+                          onClick={() => handleAskDeleteDraft(draft)}
+                        >
+                          X
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex justify-end mt-4">
+              <button className="px-4 py-2 border rounded" onClick={() => setShowDraftsList(false)}>Zamknij</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal potwierdzający usunięcie draftu */}
+      {showDeleteDraftModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg max-w-md w-full">
+            <h3 className="font-bold mb-2">Usuń wersję roboczą</h3>
+            <p className="mb-4">Czy na pewno chcesz usunąć wersję "{draftToDelete?.name}"?</p>
+            <div className="flex gap-3 justify-end">
+              <button className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50" onClick={() => setShowDeleteDraftModal(false)}>Anuluj</button>
+              <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700" onClick={handleDeleteDraft}>Usuń</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+});
 
 export default QuizManager;

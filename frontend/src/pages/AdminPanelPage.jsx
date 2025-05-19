@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import TherapistsManager from '../components/admin/TherapistsManager';
 import TagsManager from '../components/admin/TagsManager';
 import QuizManager from '../components/admin/QuizManager';
@@ -15,12 +15,30 @@ const AdminPanelPage = () => {
   }, [isAuthenticated, navigate]);
 
   const [activeTab, setActiveTab] = useState('therapists');
+  const quizManagerRef = useRef();
 
   const tabs = [
     { id: 'therapists', label: 'Terapeuci' },
     { id: 'tags', label: 'Tagi' },
     { id: 'quiz', label: 'Quiz' }
   ];
+
+  const handleTabChange = (tabId) => {
+    if (tabId === activeTab) return;
+    if (tabId === 'quiz' && quizManagerRef.current && quizManagerRef.current.handleTabChange) {
+      // Przechodzimy do quizu, nie blokuj
+      setActiveTab(tabId);
+      return;
+    }
+    if (activeTab === 'quiz' && quizManagerRef.current && quizManagerRef.current.handleTabChange) {
+      // Przechodzimy z quizu, sprawdź czy są niezapisane zmiany
+      const allow = quizManagerRef.current.handleTabChange(() => setActiveTab(tabId));
+      if (allow) setActiveTab(tabId);
+      // Jeśli nie, QuizManager wyświetli modal i sam wywoła setActiveTab po potwierdzeniu
+      return;
+    }
+    setActiveTab(tabId);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4 sm:px-6 lg:px-8">
@@ -33,7 +51,7 @@ const AdminPanelPage = () => {
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`
                     w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm
                     ${activeTab === tab.id
@@ -53,7 +71,7 @@ const AdminPanelPage = () => {
             {activeTab === 'therapists' && <TherapistsManager />}
             {activeTab === 'tags' && <TagsManager />}
             {activeTab === 'quiz' && (
-              <QuizManager />
+              <QuizManager ref={quizManagerRef} />
             )}
           </div>
         </div>

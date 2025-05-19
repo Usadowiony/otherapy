@@ -16,3 +16,15 @@ export const updateAnswer = async (id, data) => {
 export const deleteAnswer = async (id) => {
   await axios.delete(`${API_URL}/api/answers/${id}`);
 };
+
+// Pobierz odpowiedzi używające danego tagu
+export const getAnswersUsingTag = async (tagId) => {
+  const res = await axios.get(`${API_URL}/api/answers/tag/${tagId}/usage`);
+  return res.data;
+};
+
+// Usuń tag ze wszystkich odpowiedzi (kaskadowo)
+export const removeTagFromAllAnswers = async (tagId) => {
+  const res = await axios.delete(`${API_URL}/api/answers/tag/${tagId}/remove`);
+  return res.data;
+};

@@ -23,7 +23,12 @@ const Quiz = sequelize.define('Quiz', {
     type: DataTypes.TEXT,
     allowNull: false,
     defaultValue: 'Witaj w quizie! Kliknij "Rozpocznij", aby przejść do pierwszego pytania.'
+  },
+  publishedDraftId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: null
   }
 });
 
-module.exports = Quiz; 
+module.exports = Quiz;

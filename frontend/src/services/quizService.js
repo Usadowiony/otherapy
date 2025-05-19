@@ -11,3 +11,8 @@ export const getAllQuizzes = async () => {
   const res = await axios.get(`${API_URL}/api/quizzes`);
   return res.data;
 };
+
+export const updateQuiz = async (quizId, data) => {
+  const res = await axios.put(`${API_URL}/api/quizzes/${quizId}`, data);
+  return res.data;
+};

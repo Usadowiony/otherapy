@@ -102,3 +102,16 @@ export const deleteTag = async (id) => {
     handleError(error);
   }
 };
+
+// Kaskadowo usuń powiązania tagu z terapeutami
+export const removeTagFromAllTherapists = async (tagId) => {
+  try {
+    const response = await axios.delete(
+      `${API_URL}/tags/${tagId}/remove-from-therapists`,
+      getAuthConfig()
+    );
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};

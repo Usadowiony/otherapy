@@ -1,32 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
-const { Quiz, Question } = require('../models');
+const { Quiz } = require('../models');
 
-// Pobierz wszystkie quizy
+// Pobierz wszystkie quizy (tylko metadane, bez pytań)
 router.get('/', async (req, res) => {
   try {
-    const quizzes = await Quiz.findAll({
-      include: [{
-        model: Question,
-        attributes: ['id', 'text', 'type', 'order']
-      }]
-    });
+    const quizzes = await Quiz.findAll();
     res.json(quizzes);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Pobierz pojedynczy quiz
+// Pobierz pojedynczy quiz (tylko metadane, bez pytań)
 router.get('/:id', async (req, res) => {
   try {
-    const quiz = await Quiz.findByPk(req.params.id, {
-      include: [{
-        model: Question,
-        attributes: ['id', 'text', 'type', 'order']
-      }]
-    });
+    const quiz = await Quiz.findByPk(req.params.id);
     if (!quiz) {
       return res.status(404).json({ error: 'Quiz not found' });
     }
@@ -49,11 +39,12 @@ router.post('/', [
   }
 });
 
-// Aktualizuj quiz
+// Aktualizuj quiz (np. publikacja draftu)
 router.put('/:id', [
   body('title').optional().trim(),
   body('description').optional().trim(),
-  body('isActive').optional().isBoolean()
+  body('isActive').optional().isBoolean(),
+  body('publishedDraftId').optional().isInt()
 ], async (req, res) => {
   try {
     const quiz = await Quiz.findByPk(req.params.id);
@@ -81,4 +72,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { getAllTags, createTag, updateTag, deleteTag, getTherapistsUsingTag, setGlobalAuthErrorHandler } from '../../services/tagService';
+import { getAllTags, createTag, updateTag, deleteTag, getTherapistsUsingTag, setGlobalAuthErrorHandler, removeTagFromAllTherapists } from '../../services/tagService';
+import { getAnswersUsingTag, removeTagFromAllAnswers } from '../../services/answerService';
 import { useAdminAuth } from './AdminAuthProvider';
 
 const TagsManager = () => {
@@ -15,6 +16,7 @@ const TagsManager = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [tagToDelete, setTagToDelete] = useState(null);
   const [therapistsUsingTag, setTherapistsUsingTag] = useState([]);
+  const [answersUsingTag, setAnswersUsingTag] = useState([]);
   const { sessionExpired, handleApiAuthError } = useAdminAuth();
 
   useEffect(() => {
@@ -91,10 +93,19 @@ const TagsManager = () => {
   const handleDeleteClick = async (tag) => {
     try {
       setIsLoading(true);
+      setError("");
       const therapists = await getTherapistsUsingTag(tag.id);
+      const answers = await getAnswersUsingTag(tag.id);
       setTherapistsUsingTag(therapists);
+      setAnswersUsingTag(answers);
       setTagToDelete(tag);
-      setShowDeleteConfirm(true);
+      // Jeśli tag jest powiązany z terapeutą LUB odpowiedzią, pokaż popup
+      if (therapists.length > 0 || answers.length > 0) {
+        setShowDeleteConfirm(true);
+      } else {
+        // Jeśli nie jest nigdzie używany, od razu pokaż klasyczne potwierdzenie
+        setShowDeleteConfirm(true);
+      }
     } catch (error) {
       setError('Błąd podczas sprawdzania użycia tagu');
     } finally {
@@ -103,19 +114,42 @@ const TagsManager = () => {
   };
 
   const handleDeleteConfirm = async () => {
-    if (tagToDelete && therapistsUsingTag.length === 0) {
-      try {
-        setIsLoading(true);
-        await deleteTag(tagToDelete.id);
-        await fetchTags();
-      } catch (error) {
-        setError('Błąd podczas usuwania tagu');
-      } finally {
-        setIsLoading(false);
-        setShowDeleteConfirm(false);
-        setTagToDelete(null);
-        setTherapistsUsingTag([]);
+    if (!tagToDelete) return;
+    try {
+      setIsLoading(true);
+      await deleteTag(tagToDelete.id);
+      await fetchTags();
+      setShowDeleteConfirm(false);
+      setTagToDelete(null);
+      setTherapistsUsingTag([]);
+      setAnswersUsingTag([]);
+    } catch (error) {
+      setError('Błąd podczas usuwania tagu');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteAnyway = async () => {
+    if (!tagToDelete) return;
+    try {
+      setIsLoading(true);
+      if (therapistsUsingTag.length > 0) {
+        await removeTagFromAllTherapists(tagToDelete.id);
       }
+      if (answersUsingTag.length > 0) {
+        await removeTagFromAllAnswers(tagToDelete.id);
+      }
+      await deleteTag(tagToDelete.id);
+      await fetchTags();
+      setShowDeleteConfirm(false);
+      setTagToDelete(null);
+      setTherapistsUsingTag([]);
+      setAnswersUsingTag([]);
+    } catch (error) {
+      setError('Błąd podczas usuwania tagu');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -219,29 +253,43 @@ const TagsManager = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">Potwierdź usunięcie</h3>
-            {therapistsUsingTag.length > 0 ? (
+            {(therapistsUsingTag.length > 0 || answersUsingTag.length > 0) ? (
               <div>
                 <p className="text-red-600 mb-4">
-                  Nie można usunąć tego tagu, ponieważ jest używany przez następujących terapeutów:
+                  Ten tag jest aktualnie używany:
                 </p>
-                <ul className="list-disc list-inside mb-6 space-y-2">
+                <ul className="list-disc list-inside mb-4 space-y-2 max-h-32 overflow-y-auto">
                   {therapistsUsingTag.map(therapist => (
                     <li key={therapist.id} className="text-gray-700">
-                      {therapist.firstName} {therapist.lastName}
+                      Terapeuta: {therapist.firstName} {therapist.lastName}
+                    </li>
+                  ))}
+                  {answersUsingTag.map(ans => (
+                    <li key={ans.id} className="text-gray-700">
+                      Odpowiedź: <span className="font-semibold">{ans.text}</span> (ID pytania: {ans.questionId})
                     </li>
                   ))}
                 </ul>
-                <div className="flex justify-end">
+                <p className="text-gray-600 mb-6">Czy na pewno chcesz usunąć tag "{tagToDelete?.name}"? Zostanie on usunięty ze wszystkich powiązań.</p>
+                <div className="flex justify-end gap-3">
                   <button
                     onClick={() => {
                       setShowDeleteConfirm(false);
                       setTagToDelete(null);
                       setTherapistsUsingTag([]);
+                      setAnswersUsingTag([]);
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                     disabled={isLoading}
                   >
-                    Zamknij
+                    Anuluj
+                  </button>
+                  <button
+                    onClick={handleDeleteAnyway}
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Usuwanie...' : 'Usuń mimo to'}
                   </button>
                 </div>
               </div>
@@ -256,6 +304,7 @@ const TagsManager = () => {
                       setShowDeleteConfirm(false);
                       setTagToDelete(null);
                       setTherapistsUsingTag([]);
+                      setAnswersUsingTag([]);
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                     disabled={isLoading}

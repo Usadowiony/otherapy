@@ -12,5 +12,7 @@ router.post('/init', tagController.initTags);
 router.post('/', verifyToken, tagController.createTag);
 router.put('/:id', verifyToken, tagController.updateTag);
 router.delete('/:id', verifyToken, tagController.deleteTag);
+// Kaskadowe usuwanie powiązań tagu z terapeutami
+router.delete('/:id/remove-from-therapists', verifyToken, tagController.removeTagFromAllTherapists);
 
-module.exports = router; 
+module.exports = router;

@@ -4,6 +4,7 @@ const { initDatabase } = require('./models');
 const quizRoutes = require('./routes/quizRoutes');
 const questionRoutes = require('./routes/questionRoutes');
 const answerRoutes = require('./routes/answerRoutes');
+const quizDraftRoutes = require('./routes/quizDraftRoutes');
 
 const app = express();
 
@@ -26,6 +27,7 @@ if (process.env.NODE_ENV === 'development') {
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/answers', answerRoutes);
+app.use('/api/quiz-drafts', quizDraftRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {
