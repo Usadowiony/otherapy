@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TherapistsManager from '../components/admin/TherapistsManager';
 import TagsManager from '../components/admin/TagsManager';
 import QuizManager from '../components/admin/QuizManager';
+import { useAdminAuth } from '../components/admin/AdminAuthProvider';
+import { useNavigate } from 'react-router-dom';
 
 const AdminPanelPage = () => {
+  const { isAuthenticated } = useAdminAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
+
   const [activeTab, setActiveTab] = useState('therapists');
 
   const tabs = [
