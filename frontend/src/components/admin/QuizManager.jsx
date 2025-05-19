@@ -423,13 +423,14 @@ const QuizManager = forwardRef((props, ref) => {
   };
   const handleSaveAnswer = (text, tags) => {
     if (!text.trim()) return;
+    const validTags = (tags || []).filter(tagId => availableTags.some(t => t.id === tagId));
     setDraftQuestions(qs => qs.map((q, i) => {
       if (i !== editAIdx.qIdx) return q;
       const answers = [...q.answers];
       if (editAIdx.aIdx === answers.length) {
-        answers.push({ id: undefined, text, order: answers.length + 1, tags: tags || [] });
+        answers.push({ id: undefined, text, order: answers.length + 1, tags: validTags });
       } else {
-        answers[editAIdx.aIdx] = { ...answers[editAIdx.aIdx], text, tags: tags || [] };
+        answers[editAIdx.aIdx] = { ...answers[editAIdx.aIdx], text, tags: validTags };
       }
       return { ...q, answers };
     }));
@@ -563,6 +564,32 @@ const QuizManager = forwardRef((props, ref) => {
   const loadedDraft = drafts.find(d => d.id === draftInUseId) || null;
   const isPublishedDraft = draftInUseId === publishedDraftId;
 
+  // --- ODŚWIEŻANIE DRAFTU Z BACKENDU (np. po usunięciu tagu) ---
+  const refreshDraftFromBackend = async () => {
+    if (!quiz || !draftInUseId) return;
+    const drafts = await getQuizDrafts(quiz.id);
+    setDrafts(drafts);
+    const loaded = drafts.find(d => d.id === draftInUseId);
+    if (loaded) {
+      setDraftQuestions(loaded.data.questions);
+      initialStateRef.current = JSON.stringify(loaded.data.questions);
+    }
+  };
+
+  // 1. Automatyczne czyszczenie tagów w draftQuestions po zmianie availableTags
+  useEffect(() => {
+    setDraftQuestions(qs =>
+      qs.map(q => ({
+        ...q,
+        tags: Array.isArray(q.tags) ? q.tags.filter(tagId => availableTags.some(t => t.id === tagId)) : [],
+        answers: (q.answers || []).map(a => ({
+          ...a,
+          tags: Array.isArray(a.tags) ? a.tags.filter(tagId => availableTags.some(t => t.id === tagId)) : []
+        }))
+      }))
+    );
+  }, [availableTags]);
+
   return (
     <div className="p-4">
       {sessionExpired && (
@@ -685,7 +712,13 @@ const QuizManager = forwardRef((props, ref) => {
           onClose={() => setShowAModal(false)}
           onSave={handleSaveAnswer}
           initialText={editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.text ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].text : ""}
-          initialTags={editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.tags ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].tags : []}
+          initialTags={
+            editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.tags
+              ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].tags.filter(tagId =>
+                  availableTags.some(tag => tag.id === tagId)
+                )
+              : []
+          }
           availableTags={availableTags}
         />
         <SaveDraftModal 

@@ -38,28 +38,16 @@ exports.updateTag = async (req, res) => {
   }
 };
 
-// Usuń tag
+// Usuń tag globalnie, usuwając najpierw powiązania z terapeutami (kaskadowo)
 exports.deleteTag = async (req, res) => {
   try {
     const tag = await Tag.findByPk(req.params.id);
-    
     if (!tag) {
       return res.status(404).json({ message: 'Tag not found' });
     }
-
-    // Sprawdź, czy tag jest używany przez terapeutów
-    const therapists = await tag.getTherapists();
-    if (therapists.length > 0) {
-      return res.status(400).json({ 
-        message: 'Cannot delete tag that is in use',
-        therapists: therapists.map(t => ({
-          id: t.id,
-          firstName: t.firstName,
-          lastName: t.lastName
-        }))
-      });
-    }
-
+    // Usuń powiązania tagu z terapeutami
+    await tag.setTherapists([]);
+    // Usuń tag
     await tag.destroy();
     res.json({ message: 'Tag deleted successfully' });
   } catch (error) {
@@ -92,16 +80,14 @@ exports.getTherapistsUsingTag = async (req, res) => {
         through: { attributes: [] } // Nie pobieramy atrybutów z tabeli łączącej
       }]
     });
-    
+    // Jeśli tag nie istnieje, zwróć pustą tablicę (nie 404)
     if (!tag) {
-      return res.status(404).json({ message: 'Tag not found' });
+      return res.json([]);
     }
-
     // Używamy getTherapists() zamiast bezpośredniego dostępu do Therapists
     const therapists = await tag.getTherapists({
       attributes: ['id', 'firstName', 'lastName']
     });
-
     res.json(therapists);
   } catch (error) {
     console.error('Error in getTherapistsUsingTag:', error);

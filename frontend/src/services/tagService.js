@@ -115,3 +115,27 @@ export const removeTagFromAllTherapists = async (tagId) => {
     handleError(error);
   }
 };
+
+// Pobierz powiązania tagu z quizem (pytania/odpowiedzi)
+export const getQuizTagUsage = async (tagId) => {
+  try {
+    const response = await axios.get('http://localhost:3004/api/tags/' + tagId + '/quiz-usage');
+    return response.data;
+  } catch (error) {
+    // Jeśli 404/410, traktuj jako brak powiązań
+    if (error.response && (error.response.status === 404 || error.response.status === 410)) {
+      return { questions: [], answers: [] };
+    }
+    handleError(error);
+  }
+};
+
+// Usuń tag z quizu (opublikowany + drafty)
+export const removeTagFromQuiz = async (tagId) => {
+  try {
+    const response = await axios.delete('http://localhost:3004/api/tags/' + tagId + '/remove-from-quiz');
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
