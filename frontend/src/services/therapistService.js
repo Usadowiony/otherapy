@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3003/api';
+// Poprawny adres API dla terapeutów:
+const API_URL = 'http://localhost:3001/api';
 
 // Konfiguracja axios z tokenem
 const getAuthConfig = () => {
@@ -93,57 +94,6 @@ export const deleteTherapist = async (id) => {
   try {
     const response = await axios.delete(
       `${API_URL}/therapists/${id}`,
-      getAuthConfig()
-    );
-    return response.data;
-  } catch (error) {
-    handleError(error);
-  }
-};
-
-// Pobierz wszystkie tagi
-export const getAllTags = async () => {
-  try {
-    const response = await axios.get(`${API_URL}/tags`);
-    return response.data;
-  } catch (error) {
-    handleError(error);
-  }
-};
-
-// Utwórz nowy tag
-export const createTag = async (tagData) => {
-  try {
-    const response = await axios.post(
-      `${API_URL}/tags`,
-      tagData,
-      getAuthConfig()
-    );
-    return response.data;
-  } catch (error) {
-    handleError(error);
-  }
-};
-
-// Aktualizuj tag
-export const updateTag = async (id, tagData) => {
-  try {
-    const response = await axios.put(
-      `${API_URL}/tags/${id}`,
-      tagData,
-      getAuthConfig()
-    );
-    return response.data;
-  } catch (error) {
-    handleError(error);
-  }
-};
-
-// Usuń tag
-export const deleteTag = async (id) => {
-  try {
-    const response = await axios.delete(
-      `${API_URL}/tags/${id}`,
       getAuthConfig()
     );
     return response.data;

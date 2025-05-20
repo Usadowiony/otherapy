@@ -9,7 +9,8 @@ function adminAuth(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Brak tokena JWT' });
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    if (!payload.isAdmin) return res.status(403).json({ error: 'Brak uprawnień administratora' });
+    // Poprawka: sprawdzaj role === 'admin' zamiast isAdmin
+    if (payload.role !== 'admin') return res.status(403).json({ error: 'Brak uprawnień administratora' });
     req.user = payload;
     next();
   } catch (err) {

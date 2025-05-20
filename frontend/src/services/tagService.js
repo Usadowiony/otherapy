@@ -66,7 +66,7 @@ export const getTherapistsUsingTag = async (tagId) => {
 export const createTag = async (tagData) => {
   try {
     const response = await axios.post(
-      `${API_URL}/tags`,
+      `${API_URL}/admin/tags`, // poprawiony endpoint
       tagData,
       getAuthConfig()
     );
@@ -80,7 +80,7 @@ export const createTag = async (tagData) => {
 export const updateTag = async (id, tagData) => {
   try {
     const response = await axios.put(
-      `${API_URL}/tags/${id}`,
+      `${API_URL}/admin/tags/${id}`,
       tagData,
       getAuthConfig()
     );

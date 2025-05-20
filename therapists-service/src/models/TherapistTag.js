@@ -6,6 +6,14 @@ const TherapistTag = sequelize.define('TherapistTag', {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true
+  },
+  TherapistId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  TagId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   }
 }, {
   tableName: 'TherapistTags',
@@ -18,4 +26,4 @@ const TherapistTag = sequelize.define('TherapistTag', {
   ]
 });
 
-module.exports = TherapistTag; 
+module.exports = TherapistTag;

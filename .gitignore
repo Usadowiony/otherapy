@@ -41,6 +41,9 @@ yarn-error.log*
 auth-service/database.sqlite
 therapists-service/database.sqlite
 quizzes-service/database.sqlite
+tags-service/database/*.sqlite
+therapists-service/database/*.sqlite
+quizzes-service/database/*.sqlite
 
 # Bazy danych SQLite
 *.db-journal
@@ -97,3 +100,5 @@ frontend/*.log
 frontend/coverage/
 frontend/.DS_Store
 frontend/build/ 
+therapists-service/database/therapists.sqlite
+therapists-service/database/therapists.sqlite

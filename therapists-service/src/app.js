@@ -11,7 +11,8 @@ const app = express();
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 app.use(express.json());
 
@@ -37,7 +38,7 @@ app.use((err, req, res, next) => {
 });
 
 // Inicjalizacja bazy danych i start serwera
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT || 3001;
 
 const startServer = async () => {
   try {
@@ -52,4 +53,4 @@ const startServer = async () => {
   }
 };
 
-startServer(); 
+startServer();

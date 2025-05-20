@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import {
   getAllTherapists,
-  getAllTags,
   createTherapist,
   updateTherapist,
   deleteTherapist,
   setGlobalAuthErrorHandler
 } from '../../services/therapistService';
+import { getAllTags } from '../../services/tagService';
 import { useAdminAuth } from './AdminAuthProvider';
 
 const TherapistsManager = () => {
@@ -61,7 +61,7 @@ const TherapistsManager = () => {
         lastName: therapist.lastName,
         specialization: therapist.specialization,
         description: therapist.description || '',
-        tags: therapist.Tags?.map(tag => tag.id) || []
+        tags: therapist.tagIds || []
       });
     } else {
       setFormData({
@@ -117,7 +117,7 @@ const TherapistsManager = () => {
         lastName: formData.lastName,
         specialization: formData.specialization,
         description: formData.description,
-        tags: formData.tags
+        tagIds: formData.tags
       };
 
       if (selectedTherapist) {
@@ -197,14 +197,17 @@ const TherapistsManager = () => {
                 <p className="text-gray-500 mb-4">{therapist.description}</p>
               )}
               <div className="flex flex-wrap gap-2 mb-4">
-                {therapist.Tags?.map(tag => (
-                  <span
-                    key={tag.id}
-                    className="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded"
-                  >
-                    {tag.name}
-                  </span>
-                ))}
+                {therapist.tagIds && therapist.tagIds.map(tagId => {
+                  const tag = availableTags.find(t => t.id === tagId);
+                  return tag ? (
+                    <span
+                      key={tag.id}
+                      className="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded"
+                    >
+                      {tag.name}
+                    </span>
+                  ) : null;
+                })}
               </div>
               <div className="flex justify-end gap-2">
                 <button
