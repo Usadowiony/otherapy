@@ -3,6 +3,8 @@ const Quiz = require('./Quiz');
 const Question = require('./Question');
 const Answer = require('./Answer');
 const QuizDraft = require('./QuizDraft');
+const QuestionTag = require('./QuestionTag');
+const AnswerTag = require('./AnswerTag');
 
 // Synchronizacja z bazą danych
 const initDatabase = async () => {
@@ -25,5 +27,7 @@ module.exports = {
   Question,
   Answer,
   QuizDraft,
+  QuestionTag,
+  AnswerTag,
   initDatabase
 };

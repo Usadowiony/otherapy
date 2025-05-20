@@ -27,12 +27,7 @@ const Question = sequelize.define('Question', {
   order: {
     type: DataTypes.INTEGER,
     allowNull: false
-  },
-  tags: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
   }
 });
 
-module.exports = Question; 
+module.exports = Question;

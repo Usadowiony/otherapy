@@ -77,4 +77,52 @@ router.delete('/:quizId/:draftId', async (req, res) => {
   res.json({ success: true });
 });
 
+// Dodaj tag do pytania
+router.post('/question/:questionId/tag/:tagId', async (req, res) => {
+  const { QuestionTag } = require('../models');
+  const { questionId, tagId } = req.params;
+  try {
+    await QuestionTag.findOrCreate({ where: { QuestionId: questionId, TagId: tagId } });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Usuń tag z pytania
+router.delete('/question/:questionId/tag/:tagId', async (req, res) => {
+  const { QuestionTag } = require('../models');
+  const { questionId, tagId } = req.params;
+  try {
+    await QuestionTag.destroy({ where: { QuestionId: questionId, TagId: tagId } });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Dodaj tag do odpowiedzi
+router.post('/answer/:answerId/tag/:tagId', async (req, res) => {
+  const { AnswerTag } = require('../models');
+  const { answerId, tagId } = req.params;
+  try {
+    await AnswerTag.findOrCreate({ where: { AnswerId: answerId, TagId: tagId } });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Usuń tag z odpowiedzi
+router.delete('/answer/:answerId/tag/:tagId', async (req, res) => {
+  const { AnswerTag } = require('../models');
+  const { answerId, tagId } = req.params;
+  try {
+    await AnswerTag.destroy({ where: { AnswerId: answerId, TagId: tagId } });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

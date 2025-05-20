@@ -27,11 +27,6 @@ const Answer = sequelize.define('Answer', {
   order: {
     type: DataTypes.INTEGER,
     allowNull: false
-  },
-  tags: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
   }
 });
 

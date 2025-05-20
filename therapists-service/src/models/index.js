@@ -1,28 +1,14 @@
 const sequelize = require('../config/database');
 const Therapist = require('./Therapist');
-const Tag = require('./Tag');
 const TherapistTag = require('./TherapistTag');
 
-// Definiowanie relacji
-Therapist.belongsToMany(Tag, { 
-  through: TherapistTag,
-  foreignKey: 'TherapistId',
-  otherKey: 'TagId'
-});
-Tag.belongsToMany(Therapist, { 
-  through: TherapistTag,
-  foreignKey: 'TagId',
-  otherKey: 'TherapistId'
-});
+// Usunięto model Tag i relacje z Tag.
+// TherapistTag przechowuje tylko powiązania ID terapeuta-tag.
 
-// Synchronizacja z bazą danych
 const initDatabase = async () => {
   try {
-    // Testujemy połączenie
     await sequelize.authenticate();
     console.log('Database connection has been established successfully.');
-    
-    // Synchronizujemy modele bez alteracji (zachowujemy dane)
     await sequelize.sync();
     console.log('Database synchronized successfully');
   } catch (error) {
@@ -34,7 +20,6 @@ const initDatabase = async () => {
 module.exports = {
   sequelize,
   Therapist,
-  Tag,
   TherapistTag,
   initDatabase
-}; 
+};
