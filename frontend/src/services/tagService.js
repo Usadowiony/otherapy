@@ -52,16 +52,6 @@ export const getAllTags = async () => {
   }
 };
 
-// Pobierz terapeutów używających tagu
-export const getTherapistsUsingTag = async (tagId) => {
-  try {
-    const response = await axios.get(`${API_URL}/tags/${tagId}/therapists`);
-    return response.data;
-  } catch (error) {
-    handleError(error);
-  }
-};
-
 // Utwórz nowy tag
 export const createTag = async (tagData) => {
   try {
@@ -94,7 +84,7 @@ export const updateTag = async (id, tagData) => {
 export const deleteTag = async (id) => {
   try {
     const response = await axios.delete(
-      `${API_URL}/tags/${id}`,
+      `${API_URL}/admin/tags/${id}`,
       getAuthConfig()
     );
     return response.data;

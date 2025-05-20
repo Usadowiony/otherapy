@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { getAllTags, createTag, updateTag, deleteTag, getTherapistsUsingTag, setGlobalAuthErrorHandler, removeTagFromAllTherapists, getQuizTagUsage, removeTagFromQuiz } from '../../services/tagService';
+import { getAllTags, createTag, updateTag, deleteTag, setGlobalAuthErrorHandler, getQuizTagUsage, removeTagFromQuiz } from '../../services/tagService';
 import { getAnswersUsingTag, removeTagFromAllAnswers } from '../../services/answerService';
 import { useAdminAuth } from './AdminAuthProvider';
 
@@ -15,7 +15,6 @@ const TagsManager = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [tagToDelete, setTagToDelete] = useState(null);
-  const [therapistsUsingTag, setTherapistsUsingTag] = useState([]);
   const [answersUsingTag, setAnswersUsingTag] = useState([]);
   const [quizTagUsage, setQuizTagUsage] = useState({ questions: [], answers: [] });
   const { sessionExpired, handleApiAuthError } = useAdminAuth();
@@ -95,7 +94,6 @@ const TagsManager = () => {
     try {
       setIsLoading(true);
       setError("");
-      const therapists = await getTherapistsUsingTag(tag.id);
       let answers = [];
       try {
         answers = await getAnswersUsingTag(tag.id);
@@ -115,7 +113,6 @@ const TagsManager = () => {
       } catch (err) {
         quizUsage = { questions: [], answers: [] };
       }
-      setTherapistsUsingTag(therapists);
       setAnswersUsingTag(answers);
       setQuizTagUsage(quizUsage);
       setTagToDelete(tag);
@@ -135,7 +132,6 @@ const TagsManager = () => {
       await fetchTags();
       setShowDeleteConfirm(false);
       setTagToDelete(null);
-      setTherapistsUsingTag([]);
       setAnswersUsingTag([]);
       setQuizTagUsage({ questions: [], answers: [] });
     } catch (error) {
@@ -149,9 +145,6 @@ const TagsManager = () => {
     if (!tagToDelete) return;
     try {
       setIsLoading(true);
-      if (therapistsUsingTag.length > 0) {
-        await removeTagFromAllTherapists(tagToDelete.id);
-      }
       if (answersUsingTag.length > 0) {
         await removeTagFromAllAnswers(tagToDelete.id);
       }
@@ -162,7 +155,6 @@ const TagsManager = () => {
       await fetchTags();
       setShowDeleteConfirm(false);
       setTagToDelete(null);
-      setTherapistsUsingTag([]);
       setAnswersUsingTag([]);
       setQuizTagUsage({ questions: [], answers: [] });
     } catch (error) {
@@ -272,17 +264,12 @@ const TagsManager = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">Potwierdź usunięcie</h3>
-            {(therapistsUsingTag.length > 0 || answersUsingTag.length > 0 || quizTagUsage.questions.length > 0 || quizTagUsage.answers.length > 0) ? (
+            {(answersUsingTag.length > 0 || quizTagUsage.questions.length > 0 || quizTagUsage.answers.length > 0) ? (
               <div>
                 <p className="text-red-600 mb-4">
                   Ten tag jest aktualnie używany:
                 </p>
                 <ul className="list-disc list-inside mb-4 space-y-2 max-h-40 overflow-y-auto">
-                  {therapistsUsingTag.map(therapist => (
-                    <li key={therapist.id} className="text-gray-700">
-                      Terapeuta: {therapist.firstName} {therapist.lastName}
-                    </li>
-                  ))}
                   {answersUsingTag.map(ans => (
                     <li key={ans.id} className="text-gray-700">
                       Odpowiedź: <span className="font-semibold">{ans.text}</span> (ID pytania: {ans.questionId})
@@ -305,7 +292,6 @@ const TagsManager = () => {
                     onClick={() => {
                       setShowDeleteConfirm(false);
                       setTagToDelete(null);
-                      setTherapistsUsingTag([]);
                       setAnswersUsingTag([]);
                       setQuizTagUsage({ questions: [], answers: [] });
                     }}
@@ -333,7 +319,6 @@ const TagsManager = () => {
                     onClick={() => {
                       setShowDeleteConfirm(false);
                       setTagToDelete(null);
-                      setTherapistsUsingTag([]);
                       setAnswersUsingTag([]);
                       setQuizTagUsage({ questions: [], answers: [] });
                     }}

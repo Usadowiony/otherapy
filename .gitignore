@@ -100,5 +100,4 @@ frontend/*.log
 frontend/coverage/
 frontend/.DS_Store
 frontend/build/ 
-therapists-service/database/therapists.sqlite
-therapists-service/database/therapists.sqlite
+therapists-service/database/
