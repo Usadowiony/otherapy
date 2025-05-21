@@ -48,7 +48,7 @@ const EditQuestionModal = ({ open, onClose, onSave, initialText }) => {
   ) : null;
 };
 
-const EditAnswerModal = ({ open, onClose, onSave, initialText, initialTags = [], availableTags = [] }) => {
+const EditAnswerModal = ({ open, onClose, onSave, initialText, initialTags = [], availableTags = [], onAnyChange, onTagsChange }) => {
   const [text, setText] = useState(initialText || "");
   const [selectedTags, setSelectedTags] = useState(initialTags);
   const [error, setError] = useState("");
@@ -61,10 +61,13 @@ const EditAnswerModal = ({ open, onClose, onSave, initialText, initialTags = [],
   }, [open, initialText, initialTags]);
 
   const handleTagChange = (tagId) => {
-    setSelectedTags((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    );
+    setSelectedTags((prev) => {
+      const newTags = prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId];
+      if (onTagsChange) onTagsChange(newTags);
+      return newTags;
+    });
     setShowNoTagsWarning(false);
+    if (onAnyChange) onAnyChange();
   };
 
   const handleSave = () => {
@@ -232,7 +235,13 @@ function areQuestionsEqual(q1, q2) {
     for (let j = 0; j < a.answers.length; ++j) {
       const aa = a.answers[j], ba = b.answers[j];
       if (aa.text !== ba.text || aa.order !== ba.order) return false;
-      // Możesz dodać porównanie tagów jeśli istotne
+      // Porównanie tagów odpowiedzi:
+      const tagsA = Array.isArray(aa.tags) ? aa.tags.slice().sort() : [];
+      const tagsB = Array.isArray(ba.tags) ? ba.tags.slice().sort() : [];
+      if (tagsA.length !== tagsB.length) return false;
+      for (let k = 0; k < tagsA.length; ++k) {
+        if (tagsA[k] !== tagsB[k]) return false;
+      }
     }
   }
   return true;
@@ -790,6 +799,19 @@ const QuizManager = forwardRef((props, ref) => {
               : []
           }
           availableTags={availableTags}
+          onAnyChange={() => setIsDraftSaved(false)}
+          onTagsChange={newTags => {
+            if (editAIdx.qIdx !== null && editAIdx.aIdx !== null) {
+              setDraftQuestions(qs => qs.map((q, i) => {
+                if (i !== editAIdx.qIdx) return q;
+                const answers = [...q.answers];
+                if (answers[editAIdx.aIdx]) {
+                  answers[editAIdx.aIdx] = { ...answers[editAIdx.aIdx], tags: newTags };
+                }
+                return { ...q, answers };
+              }));
+            }
+          }}
         />
         <SaveDraftModal 
           open={showSaveDraftModal} 
