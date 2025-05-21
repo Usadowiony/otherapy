@@ -630,11 +630,22 @@ const QuizManager = forwardRef((props, ref) => {
                       <button className="text-red-600 hover:underline" onClick={() => handleDeleteQuestion(idx)}>Usuń</button>
                     </div>
                   </div>
-                  <div className="mb-2">{q.text}</div>
+                  <div className="mb-2 font-bold">{q.text}</div>
                   <ul className="list-disc ml-6">
                     {q.answers.map((ans, aIdx) => (
                       <li key={ans.id || `draft-a-${aIdx}`} className="mb-1 flex items-center gap-2">
+                        <span className="before:content-['•'] before:mr-2 before:text-gray-400"></span>
                         <span>{ans.text}</span>
+                        {ans.tags && ans.tags.length > 0 && (
+                          <span className="flex flex-wrap gap-1 ml-2">
+                            {ans.tags.map(tagId => {
+                              const tag = availableTags.find(t => t.id === tagId);
+                              return tag ? (
+                                <span key={tag.id} className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">{tag.name}</span>
+                              ) : null;
+                            })}
+                          </span>
+                        )}
                         <button className="text-blue-600 hover:underline text-xs" onClick={() => handleEditAnswer(idx, aIdx)}>Edytuj</button>
                         <button className="text-red-600 hover:underline text-xs" onClick={() => handleDeleteAnswer(idx, aIdx)}>Usuń</button>
                       </li>
