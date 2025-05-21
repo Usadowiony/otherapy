@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { PlusIcon, PencilIcon, TrashIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
-import { getAllTags, createTag, updateTag, setGlobalAuthErrorHandler, getTagTherapistUsage, getTagQuizUsage } from '../../services/tagService';
+import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { getAllTags, createTag, updateTag, setGlobalAuthErrorHandler, deleteTag } from '../../services/tagService';
 import { useAdminAuth } from './AdminAuthProvider';
 
 const TagsManager = () => {
@@ -14,9 +14,6 @@ const TagsManager = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, tag: null, loading: false, error: '' });
   const { sessionExpired, handleApiAuthError } = useAdminAuth();
-  const [usageByTagId, setUsageByTagId] = useState({});
-  const [hoveredTagId, setHoveredTagId] = useState(null);
-  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     setGlobalAuthErrorHandler(handleApiAuthError);
@@ -89,29 +86,24 @@ const TagsManager = () => {
     }
   };
 
-  const handleShowUsage = async (tagId, e) => {
-    setHoveredTagId(tagId);
-    setTooltipPos({ x: e.clientX, y: e.clientY });
-    if (!usageByTagId[tagId]) {
-      setUsageByTagId(prev => ({ ...prev, [tagId]: { loading: true } }));
-      try {
-        const [therapists, quiz] = await Promise.all([
-          getTagTherapistUsage(tagId),
-          getTagQuizUsage(tagId)
-        ]);
-        setUsageByTagId(prev => ({ ...prev, [tagId]: { therapists, quiz, loading: false } }));
-      } catch (err) {
-        setUsageByTagId(prev => ({ ...prev, [tagId]: { error: 'Błąd pobierania', loading: false } }));
-      }
-    }
+  const handleDeleteClick = (tag) => {
+    setDeleteDialog({ open: true, tag, loading: false, error: '' });
   };
 
-  const handleHideUsage = () => setHoveredTagId(null);
+  const handleDeleteCancel = () => {
+    setDeleteDialog({ open: false, tag: null, loading: false, error: '' });
+  };
 
-  // Usuwanie tagów - funkcjonalność wyłączona
-  const handleDeleteClick = () => {};
-  const handleDeleteCancel = () => {};
-  const handleDeleteConfirm = () => {};
+  const handleDeleteConfirm = async () => {
+    setDeleteDialog(prev => ({ ...prev, loading: true, error: '' }));
+    try {
+      await deleteTag(deleteDialog.tag.id);
+      setDeleteDialog({ open: false, tag: null, loading: false, error: '' });
+      await fetchTags();
+    } catch (err) {
+      setDeleteDialog(prev => ({ ...prev, loading: false, error: err.message || 'Błąd podczas usuwania tagu' }));
+    }
+  };
 
   return (
     <div className="p-4">
@@ -181,55 +173,6 @@ const TagsManager = () => {
                 >
                   <TrashIcon className="h-5 w-5" />
                 </button>
-                <span
-                  className="relative"
-                  onMouseEnter={e => handleShowUsage(tag.id, e)}
-                  onMouseLeave={handleHideUsage}
-                  style={{ zIndex: 50 }}
-                >
-                  <InformationCircleIcon className="h-5 w-5 text-gray-400 hover:text-blue-400 cursor-pointer" />
-                  {hoveredTagId === tag.id && (
-                    <div
-                      className="fixed bg-white border border-gray-300 rounded shadow-lg p-3 text-xs min-w-[220px] max-w-[320px]"
-                      style={{
-                        pointerEvents: 'auto',
-                        left: tooltipPos.x + 12,
-                        top: tooltipPos.y + 12
-                      }}
-                    >
-                      {usageByTagId[tag.id]?.loading ? (
-                        <div>Ładowanie...</div>
-                      ) : usageByTagId[tag.id]?.error ? (
-                        <div className="text-red-500">{usageByTagId[tag.id].error}</div>
-                      ) : (
-                        <>
-                          <div className="mb-2">
-                            <span className="font-semibold">Terapeuci:</span><br />
-                            {usageByTagId[tag.id]?.therapists?.length
-                              ? usageByTagId[tag.id].therapists.map(t => (
-                                  <span key={t.id}>{t.firstName} {t.lastName}<br /></span>
-                                ))
-                              : <span className="text-gray-400">Brak</span>}
-                          </div>
-                          <div className="border-t border-gray-200 my-2"></div>
-                          <div>
-                            <span className="font-semibold">Quiz (odpowiedzi):</span><br />
-                            {usageByTagId[tag.id]?.quiz?.answers?.length
-                              ? usageByTagId[tag.id].quiz.answers.map((a, i) => (
-                                  <div key={i} className="mb-2">
-                                    {a.qText && (
-                                      <div className="text-gray-500 mb-1">Pyt: {a.qText}</div>
-                                    )}
-                                    <div>Odp: {a.aText}</div>
-                                  </div>
-                                ))
-                              : <span className="text-gray-400">Brak</span>}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </span>
               </div>
             </div>
           ))}
@@ -282,17 +225,23 @@ const TagsManager = () => {
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">Potwierdź usunięcie</h3>
             <p className="text-gray-600 mb-6">
-              Funkcja usuwania tagów została wyłączona.
+              Czy na pewno chcesz usunąć tag <span className="font-semibold">{deleteDialog.tag?.name}</span>?<br/>
+              <span className="text-red-600">Jeśli tag jest gdziekolwiek używany, zostanie usunięty ze wszystkich miejsc na zawsze.</span>
             </p>
+            {deleteDialog.error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded mb-4">{deleteDialog.error}</div>
+            )}
             <div className="flex justify-end gap-3">
               <button
                 onClick={handleDeleteCancel}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                disabled={deleteDialog.loading}
               >Anuluj</button>
               <button
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 opacity-50 cursor-not-allowed"
-                disabled
-              >Usuń</button>
+                onClick={handleDeleteConfirm}
+                className={`px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 ${deleteDialog.loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={deleteDialog.loading}
+              >{deleteDialog.loading ? 'Usuwanie...' : 'Usuń'}</button>
             </div>
           </div>
         </div>

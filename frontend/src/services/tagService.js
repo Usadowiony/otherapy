@@ -80,8 +80,19 @@ export const updateTag = async (id, tagData) => {
   }
 };
 
-// Wyłączone funkcje usuwania tagów (tylko jedna deklaracja każdej)
-export const deleteTag = async () => { throw new Error('Usuwanie tagów jest wyłączone.'); };
+// Usuń tag
+export const deleteTag = async (tagId) => {
+  try {
+    const response = await axios.delete(
+      `${API_URL}/admin/tags/${tagId}`,
+      getAuthConfig()
+    );
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
 export const removeTagFromQuiz = async () => { throw new Error('Usuwanie tagów jest wyłączone.'); };
 export const getQuizTagUsage = async () => { return { questions: [], answers: [] }; };
 
