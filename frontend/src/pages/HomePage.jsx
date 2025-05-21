@@ -81,7 +81,15 @@ const HomePage = () => {
               </label>
             ))}
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-between">
+            {currentQuestion > 0 ? (
+              <button
+                onClick={() => setCurrentQuestion(q => q - 1)}
+                className="px-6 py-2 rounded-lg bg-gray-300 text-gray-700 hover:bg-gray-400"
+              >
+                Wróć
+              </button>
+            ) : <div />}
             <button
               onClick={handleNext}
               disabled={answers[currentQuestion] === null}

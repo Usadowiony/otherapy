@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { getAllTags, createTag, updateTag, setGlobalAuthErrorHandler, deleteTag } from '../../services/tagService';
+import { PlusIcon, PencilIcon, TrashIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { getAllTags, createTag, updateTag, setGlobalAuthErrorHandler, deleteTag, getTagTherapistUsage, getTagQuizUsage } from '../../services/tagService';
 import { useAdminAuth } from './AdminAuthProvider';
 
 const TagsManager = () => {
@@ -13,6 +13,7 @@ const TagsManager = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, tag: null, loading: false, error: '' });
+  const [usageInfo, setUsageInfo] = useState({ open: false, tagId: null, loading: false, therapists: [], quiz: { questions: [], answers: [] }, error: '' });
   const { sessionExpired, handleApiAuthError } = useAdminAuth();
 
   useEffect(() => {
@@ -105,6 +106,23 @@ const TagsManager = () => {
     }
   };
 
+  const handleShowUsage = async (tagId) => {
+    setUsageInfo({ open: true, tagId, loading: true, therapists: [], quiz: { questions: [], answers: [] }, error: '' });
+    try {
+      const [therapists, quiz] = await Promise.all([
+        getTagTherapistUsage(tagId),
+        getTagQuizUsage(tagId)
+      ]);
+      setUsageInfo({ open: true, tagId, loading: false, therapists, quiz, error: '' });
+    } catch (err) {
+      setUsageInfo({ open: true, tagId, loading: false, therapists: [], quiz: { questions: [], answers: [] }, error: err.message || 'Błąd pobierania użycia tagu' });
+    }
+  };
+
+  const handleCloseUsage = () => {
+    setUsageInfo({ open: false, tagId: null, loading: false, therapists: [], quiz: { questions: [], answers: [] }, error: '' });
+  };
+
   return (
     <div className="p-4">
       {sessionExpired && (
@@ -173,6 +191,76 @@ const TagsManager = () => {
                 >
                   <TrashIcon className="h-5 w-5" />
                 </button>
+                <div className="relative group flex items-center">
+                  <button
+                    className="text-blue-400 hover:text-blue-600 ml-1 flex items-center"
+                    title="Gdzie używany?"
+                    type="button"
+                    onMouseEnter={async (e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setUsageInfo(prev => ({ ...prev, loading: true, tagId: tag.id, open: true, mouseX: rect.left, mouseY: rect.top }));
+                      try {
+                        const [therapists, quiz] = await Promise.all([
+                          getTagTherapistUsage(tag.id),
+                          getTagQuizUsage(tag.id)
+                        ]);
+                        setUsageInfo({ open: true, tagId: tag.id, loading: false, therapists, quiz, error: '', mouseX: rect.left, mouseY: rect.top });
+                      } catch (err) {
+                        setUsageInfo({ open: true, tagId: tag.id, loading: false, therapists: [], quiz: { questions: [], answers: [] }, error: err.message || 'Błąd pobierania użycia tagu', mouseX: rect.left, mouseY: rect.top });
+                      }
+                    }}
+                    onMouseLeave={() => setUsageInfo({ open: false, tagId: null, loading: false, therapists: [], quiz: { questions: [], answers: [] }, error: '' })}
+                  >
+                    <InformationCircleIcon className="h-5 w-5 align-middle" style={{verticalAlign: 'middle'}} />
+                  </button>
+                  {usageInfo.open && usageInfo.tagId === tag.id && (
+                    <div
+                      className="fixed z-50 bg-white border border-gray-300 rounded shadow-lg p-3 text-xs text-left whitespace-normal"
+                      style={{
+                        left: usageInfo.mouseX + 20,
+                        top: usageInfo.mouseY + 10,
+                        minWidth: '16rem',
+                        maxWidth: '22rem',
+                        pointerEvents: 'none',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+                      }}
+                    >
+                      <div className="font-semibold mb-1 text-blue-700 flex items-center gap-1">
+                        <InformationCircleIcon className="h-4 w-4 text-blue-500" /> Użycie tagu
+                      </div>
+                      {usageInfo.loading ? (
+                        <div className="text-gray-500">Ładowanie...</div>
+                      ) : usageInfo.error ? (
+                        <div className="text-red-600 mb-2">{usageInfo.error}</div>
+                      ) : (
+                        <>
+                          <div className="mb-2">
+                            <span className="font-semibold">Terapeuci:</span>
+                            {usageInfo.therapists.length === 0 ? (
+                              <span className="text-gray-500 ml-2">Brak</span>
+                            ) : (
+                              <ul className="list-disc list-inside ml-4">
+                                {usageInfo.therapists.map(t => <li key={t.id}>{t.name || t.fullName || t.email || t.id}</li>)}
+                              </ul>
+                            )}
+                          </div>
+                          <div className="border-t border-gray-200 my-2"></div>
+                          <div>
+                            <span className="font-semibold">Quizy (pytania/odpowiedzi):</span>
+                            {(!usageInfo.quiz.questions.length && !usageInfo.quiz.answers.length) ? (
+                              <span className="text-gray-500 ml-2">Brak</span>
+                            ) : (
+                              <ul className="list-disc list-inside ml-4">
+                                {usageInfo.quiz.questions.map(q => <li key={q.id}>Pytanie: {q.text || q.id}</li>)}
+                                {usageInfo.quiz.answers.map(a => <li key={a.id}>Odpowiedź: {a.text || a.id}</li>)}
+                              </ul>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -246,6 +334,8 @@ const TagsManager = () => {
           </div>
         </div>
       )}
+
+      {/* USUNIECIE POPUPA - nie renderujemy usageInfo.open na dole */}
     </div>
   );
 };
