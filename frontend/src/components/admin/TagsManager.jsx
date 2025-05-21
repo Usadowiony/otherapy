@@ -123,13 +123,31 @@ const TagsManager = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {tags.map(tag => (
-            <div key={tag.id} className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-xl font-semibold mb-2">{tag.name}</h3>
-              <div className="flex justify-end gap-2">
+            <div key={tag.id} className="bg-white rounded-lg shadow flex items-center justify-between px-4 py-2 group">
+              <div
+                className="flex-1 min-w-0 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 group-hover:scrollbar-thumb-gray-400"
+                style={{ scrollbarWidth: 'thin', scrollbarColor: 'transparent transparent' }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.scrollbarColor = '#d1d5db #fff'; // #d1d5db = gray-300
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.scrollbarColor = 'transparent transparent';
+                }}
+              >
+                <span
+                  className="text-base font-medium leading-6 whitespace-nowrap block max-w-xs truncate"
+                  title={tag.name}
+                  style={{ maxWidth: '16rem', display: 'inline-block' }}
+                >
+                  {tag.name}
+                </span>
+              </div>
+              <div className="flex gap-2 ml-2 flex-shrink-0">
                 <button
                   onClick={() => handleOpenModal(tag)}
                   className="text-blue-500 hover:text-blue-700"
                   disabled={isLoading}
+                  title="Edytuj"
                 >
                   <PencilIcon className="h-5 w-5" />
                 </button>
@@ -137,6 +155,7 @@ const TagsManager = () => {
                   onClick={() => handleDeleteClick(tag)}
                   className="text-red-500 hover:text-red-700"
                   disabled={isLoading}
+                  title="Usuń"
                 >
                   <TrashIcon className="h-5 w-5" />
                 </button>

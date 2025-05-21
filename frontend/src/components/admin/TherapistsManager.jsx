@@ -188,42 +188,49 @@ const TherapistsManager = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {therapists.map(therapist => (
-            <div key={therapist.id} className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-xl font-semibold mb-2">
-                {therapist.firstName} {therapist.lastName}
-              </h3>
-              <p className="text-gray-600 mb-2">{therapist.specialization}</p>
+            <div key={therapist.id} className="bg-white rounded-lg shadow px-4 py-3 mb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-semibold">{therapist.firstName}</span>
+                  <span className="text-base font-semibold">{therapist.lastName}</span>
+                </div>
+                <div className="flex gap-2 ml-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleOpenModal(therapist)}
+                    className="text-blue-500 hover:text-blue-700"
+                    disabled={isLoading}
+                    title="Edytuj"
+                  >
+                    <PencilIcon className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(therapist)}
+                    className="text-red-500 hover:text-red-700"
+                    disabled={isLoading}
+                    title="Usuń"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="text-blue-600 font-medium mt-2 mb-2 text-sm">
+                {therapist.specialization}
+              </div>
               {therapist.description && (
-                <p className="text-gray-500 mb-4">{therapist.description}</p>
+                <div className="text-gray-500 mb-4 text-sm">{therapist.description}</div>
               )}
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-wrap gap-2 mt-4">
                 {therapist.tagIds && therapist.tagIds.map(tagId => {
                   const tag = availableTags.find(t => t.id === tagId);
                   return tag ? (
                     <span
                       key={tag.id}
-                      className="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded"
+                      className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded"
                     >
                       {tag.name}
                     </span>
                   ) : null;
                 })}
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => handleOpenModal(therapist)}
-                  className="text-blue-500 hover:text-blue-700"
-                  disabled={isLoading}
-                >
-                  <PencilIcon className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => handleDeleteClick(therapist)}
-                  className="text-red-500 hover:text-red-700"
-                  disabled={isLoading}
-                >
-                  <TrashIcon className="h-5 w-5" />
-                </button>
               </div>
             </div>
           ))}
