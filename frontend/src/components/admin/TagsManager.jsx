@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { getAllTags, createTag, updateTag, setGlobalAuthErrorHandler } from '../../services/tagService';
+import { PlusIcon, PencilIcon, TrashIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { getAllTags, createTag, updateTag, setGlobalAuthErrorHandler, getTagTherapistUsage, getTagQuizUsage } from '../../services/tagService';
 import { useAdminAuth } from './AdminAuthProvider';
 
 const TagsManager = () => {
@@ -14,6 +14,9 @@ const TagsManager = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, tag: null, loading: false, error: '' });
   const { sessionExpired, handleApiAuthError } = useAdminAuth();
+  const [usageByTagId, setUsageByTagId] = useState({});
+  const [hoveredTagId, setHoveredTagId] = useState(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     setGlobalAuthErrorHandler(handleApiAuthError);
@@ -86,6 +89,25 @@ const TagsManager = () => {
     }
   };
 
+  const handleShowUsage = async (tagId, e) => {
+    setHoveredTagId(tagId);
+    setTooltipPos({ x: e.clientX, y: e.clientY });
+    if (!usageByTagId[tagId]) {
+      setUsageByTagId(prev => ({ ...prev, [tagId]: { loading: true } }));
+      try {
+        const [therapists, quiz] = await Promise.all([
+          getTagTherapistUsage(tagId),
+          getTagQuizUsage(tagId)
+        ]);
+        setUsageByTagId(prev => ({ ...prev, [tagId]: { therapists, quiz, loading: false } }));
+      } catch (err) {
+        setUsageByTagId(prev => ({ ...prev, [tagId]: { error: 'Błąd pobierania', loading: false } }));
+      }
+    }
+  };
+
+  const handleHideUsage = () => setHoveredTagId(null);
+
   // Usuwanie tagów - funkcjonalność wyłączona
   const handleDeleteClick = () => {};
   const handleDeleteCancel = () => {};
@@ -142,7 +164,7 @@ const TagsManager = () => {
                   {tag.name}
                 </span>
               </div>
-              <div className="flex gap-2 ml-2 flex-shrink-0">
+              <div className="flex gap-2 ml-2 flex-shrink-0 items-center">
                 <button
                   onClick={() => handleOpenModal(tag)}
                   className="text-blue-500 hover:text-blue-700"
@@ -159,6 +181,47 @@ const TagsManager = () => {
                 >
                   <TrashIcon className="h-5 w-5" />
                 </button>
+                <span
+                  className="relative"
+                  onMouseEnter={e => handleShowUsage(tag.id, e)}
+                  onMouseLeave={handleHideUsage}
+                >
+                  <InformationCircleIcon className="h-5 w-5 text-gray-400 hover:text-blue-400 cursor-pointer" />
+                  {hoveredTagId === tag.id && (
+                    <div
+                      className="absolute z-50 left-8 top-0 bg-white border border-gray-300 rounded shadow-lg p-3 text-xs min-w-[220px] max-w-[320px]"
+                      style={{ pointerEvents: 'auto' }}
+                    >
+                      {usageByTagId[tag.id]?.loading ? (
+                        <div>Ładowanie...</div>
+                      ) : usageByTagId[tag.id]?.error ? (
+                        <div className="text-red-500">{usageByTagId[tag.id].error}</div>
+                      ) : (
+                        <>
+                          <div className="mb-2">
+                            <span className="font-semibold">Terapeuci:</span><br />
+                            {usageByTagId[tag.id]?.therapists?.length
+                              ? usageByTagId[tag.id].therapists.map(t => (
+                                  <span key={t.id}>{t.firstName} {t.lastName}<br /></span>
+                                ))
+                              : <span className="text-gray-400">Brak</span>}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Quiz (odpowiedzi):</span><br />
+                            {usageByTagId[tag.id]?.quiz?.answers?.length
+                              ? usageByTagId[tag.id].quiz.answers.map((a, i) => (
+                                  <span key={i}>
+                                    {a.qText ? <span className="text-gray-500">Pyt: {a.qText}<br /></span> : null}
+                                    Odp: {a.aText}<br />
+                                  </span>
+                                ))
+                              : <span className="text-gray-400">Brak</span>}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </span>
               </div>
             </div>
           ))}

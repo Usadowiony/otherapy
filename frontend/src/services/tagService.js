@@ -97,3 +97,23 @@ export const removeTagFromAllTherapists = async (tagId) => {
     handleError(error);
   }
 };
+
+// Pobierz użycie tagu przez terapeutów
+export const getTagTherapistUsage = async (tagId) => {
+  try {
+    const response = await axios.get(`http://localhost:3001/api/therapists/tags/${tagId}/usage`); // therapists-service (pewny endpoint)
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+// Pobierz użycie tagu w quizie (pytania/odpowiedzi)
+export const getTagQuizUsage = async (tagId) => {
+  try {
+    const response = await axios.get(`http://localhost:3004/api/quizzes/api/tags/${tagId}/quiz-usage`); // quizzes-service (poprawiony adres)
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
