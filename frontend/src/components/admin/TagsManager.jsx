@@ -185,12 +185,17 @@ const TagsManager = () => {
                   className="relative"
                   onMouseEnter={e => handleShowUsage(tag.id, e)}
                   onMouseLeave={handleHideUsage}
+                  style={{ zIndex: 50 }}
                 >
                   <InformationCircleIcon className="h-5 w-5 text-gray-400 hover:text-blue-400 cursor-pointer" />
                   {hoveredTagId === tag.id && (
                     <div
-                      className="absolute z-50 left-8 top-0 bg-white border border-gray-300 rounded shadow-lg p-3 text-xs min-w-[220px] max-w-[320px]"
-                      style={{ pointerEvents: 'auto' }}
+                      className="fixed bg-white border border-gray-300 rounded shadow-lg p-3 text-xs min-w-[220px] max-w-[320px]"
+                      style={{
+                        pointerEvents: 'auto',
+                        left: tooltipPos.x + 12,
+                        top: tooltipPos.y + 12
+                      }}
                     >
                       {usageByTagId[tag.id]?.loading ? (
                         <div>Ładowanie...</div>
@@ -206,14 +211,17 @@ const TagsManager = () => {
                                 ))
                               : <span className="text-gray-400">Brak</span>}
                           </div>
+                          <div className="border-t border-gray-200 my-2"></div>
                           <div>
                             <span className="font-semibold">Quiz (odpowiedzi):</span><br />
                             {usageByTagId[tag.id]?.quiz?.answers?.length
                               ? usageByTagId[tag.id].quiz.answers.map((a, i) => (
-                                  <span key={i}>
-                                    {a.qText ? <span className="text-gray-500">Pyt: {a.qText}<br /></span> : null}
-                                    Odp: {a.aText}<br />
-                                  </span>
+                                  <div key={i} className="mb-2">
+                                    {a.qText && (
+                                      <div className="text-gray-500 mb-1">Pyt: {a.qText}</div>
+                                    )}
+                                    <div>Odp: {a.aText}</div>
+                                  </div>
                                 ))
                               : <span className="text-gray-400">Brak</span>}
                           </div>
