@@ -101,3 +101,7 @@ export const deleteTherapist = async (id) => {
     handleError(error);
   }
 };
+
+// Wyłączone funkcje usuwania tagów
+export const removeTagFromAllTherapists = async () => { throw new Error('Usuwanie tagów jest wyłączone.'); };
+export const getTherapistsUsingTag = async () => { return []; };

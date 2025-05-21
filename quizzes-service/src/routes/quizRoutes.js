@@ -6,7 +6,15 @@ const { Quiz, QuizDraft } = require('../models');
 // Pobierz wszystkie quizy (tylko metadane, bez pytań)
 router.get('/', async (req, res) => {
   try {
-    const quizzes = await Quiz.findAll();
+    let quizzes = await Quiz.findAll();
+    if (!quizzes.length) {
+      // Jeśli nie ma quizu, utwórz domyślny quiz
+      const quiz = await Quiz.create({
+        title: 'Quiz psychologiczny',
+        description: 'Quiz do dopasowywania terapeutów na podstawie odpowiedzi.'
+      });
+      quizzes = [quiz];
+    }
     res.json(quizzes);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -72,49 +80,88 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Zwraca powiązania tagu z opublikowanym quizem (pytania/odpowiedzi)
+// Zwraca powiązania tagu z quizem (pytania/odpowiedzi) – opublikowany quiz i drafty!
 router.get('/api/tags/:tagId/quiz-usage', async (req, res) => {
   try {
     const { QuestionTag, AnswerTag, Question, Answer, Quiz, QuizDraft } = require('../models');
     const tagId = parseInt(req.params.tagId, 10);
-    // Zakładamy jeden quiz (id=1)
+    // Opublikowany quiz
     const quiz = await Quiz.findOne();
-    if (!quiz || !quiz.publishedDraftId) {
-      return res.json({ questions: [], answers: [] });
+    let usedInQuestions = [];
+    let usedInAnswers = [];
+    if (quiz && quiz.publishedDraftId) {
+      const questionTags = await QuestionTag.findAll({ where: { TagId: tagId } });
+      const answerTags = await AnswerTag.findAll({ where: { TagId: tagId } });
+      const questions = await Question.findAll({ where: { id: questionTags.map(qt => qt.QuestionId) } });
+      const answers = await Answer.findAll({ where: { id: answerTags.map(at => at.AnswerId) } });
+      usedInQuestions = questions.map(q => ({ qIdx: q.order, text: q.text }));
+      usedInAnswers = answers.map(a => ({ aIdx: a.order, aText: a.text, qText: null, qIdx: null }));
     }
-    // Pobierz pytania i odpowiedzi powiązane z tagiem
-    const questionTags = await QuestionTag.findAll({ where: { TagId: tagId } });
-    const answerTags = await AnswerTag.findAll({ where: { TagId: tagId } });
-    // Pobierz pytania i odpowiedzi (dla czytelności zwracamy teksty)
-    const questions = await Question.findAll({ where: { id: questionTags.map(qt => qt.QuestionId) } });
-    const answers = await Answer.findAll({ where: { id: answerTags.map(at => at.AnswerId) } });
-    // Mapowanie do formatu frontendowego
-    const usedInQuestions = questions.map(q => ({ qIdx: q.order, text: q.text }));
-    const usedInAnswers = answers.map(a => ({ aIdx: a.order, aText: a.text, qText: null, qIdx: null }));
-    // (Opcjonalnie: można dodać powiązanie odpowiedzi z pytaniem, jeśli Answer ma questionId)
+    // Drafty quizu
+    const drafts = await QuizDraft.findAll();
+    for (const draft of drafts) {
+      const data = draft.data;
+      if (data && Array.isArray(data.questions)) {
+        for (const q of data.questions) {
+          if (Array.isArray(q.tags) && q.tags.includes(tagId)) {
+            usedInQuestions.push({ qIdx: q.order, text: q.text + ' (DRAFT)' });
+          }
+          if (Array.isArray(q.answers)) {
+            for (const a of q.answers) {
+              if (Array.isArray(a.tags) && a.tags.includes(tagId)) {
+                usedInAnswers.push({ aIdx: a.order, aText: a.text + ' (DRAFT)', qText: q.text, qIdx: q.order });
+              }
+            }
+          }
+        }
+      }
+    }
     res.json({ questions: usedInQuestions, answers: usedInAnswers });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// Usuwa tag z odpowiedzi (i pytań) we wszystkich draftach quizu (globalnie, bez rozróżniania)
-router.delete('/api/tags/:tagId/remove-from-quiz', async (req, res) => {
-  try {
-    const { QuestionTag, AnswerTag, Quiz } = require('../models');
-    const tagId = parseInt(req.params.tagId, 10);
-    // Pobierz quiz (zakładamy jeden quiz)
-    const quiz = await Quiz.findOne();
-    if (!quiz) {
-      return res.json({ success: true });
-    }
-    // Usuń powiązania tagu z pytaniami i odpowiedziami
-    await QuestionTag.destroy({ where: { TagId: tagId } });
-    await AnswerTag.destroy({ where: { TagId: tagId } });
-    res.json({ success: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+// Wyłączony endpoint usuwania tagu z quizu
+// router.delete('/api/tags/:tagId/remove-from-quiz', async (req, res) => {
+//   try {
+//     const { QuestionTag, AnswerTag, Quiz, QuizDraft } = require('../models');
+//     const tagId = parseInt(req.params.tagId, 10);
+//     // Usuń powiązania tagu z pytaniami i odpowiedziami w opublikowanym quizie
+//     await QuestionTag.destroy({ where: { TagId: tagId } });
+//     await AnswerTag.destroy({ where: { TagId: tagId } });
+//     // Usuń powiązania tagu z pytaniami i odpowiedziami w draftach quizu (w polu data)
+//     const drafts = await QuizDraft.findAll();
+//     for (const draft of drafts) {
+//       let changed = false;
+//       const data = draft.data;
+//       if (data && Array.isArray(data.questions)) {
+//         for (const q of data.questions) {
+//           if (Array.isArray(q.tags)) {
+//             const before = q.tags.length;
+//             q.tags = q.tags.filter(tid => tid !== tagId);
+//             if (q.tags.length !== before) changed = true;
+//           }
+//           if (Array.isArray(q.answers)) {
+//             for (const a of q.answers) {
+//               if (Array.isArray(a.tags)) {
+//                 const before = a.tags.length;
+//                 a.tags = a.tags.filter(tid => tid !== tagId);
+//                 if (a.tags.length !== before) changed = true;
+//               }
+//             }
+//           }
+//         }
+//       }
+//       if (changed) {
+//         draft.data = data;
+//         await draft.save();
+//       }
+//     }
+//     res.json({ success: true });
+//   } catch (e) {
+//     res.status(500).json({ error: e.message });
+//   }
+// });
 
 module.exports = router;

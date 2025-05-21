@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { getAllTags, createTag, updateTag, deleteTag, setGlobalAuthErrorHandler, getQuizTagUsage, removeTagFromQuiz } from '../../services/tagService';
-import { getAnswersUsingTag, removeTagFromAllAnswers } from '../../services/answerService';
+import { getAllTags, createTag, updateTag, setGlobalAuthErrorHandler } from '../../services/tagService';
 import { useAdminAuth } from './AdminAuthProvider';
 
 const TagsManager = () => {
@@ -13,10 +12,7 @@ const TagsManager = () => {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [tagToDelete, setTagToDelete] = useState(null);
-  const [answersUsingTag, setAnswersUsingTag] = useState([]);
-  const [quizTagUsage, setQuizTagUsage] = useState({ questions: [], answers: [] });
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, tag: null, loading: false, error: '' });
   const { sessionExpired, handleApiAuthError } = useAdminAuth();
 
   useEffect(() => {
@@ -90,79 +86,10 @@ const TagsManager = () => {
     }
   };
 
-  const handleDeleteClick = async (tag) => {
-    try {
-      setIsLoading(true);
-      setError("");
-      let answers = [];
-      try {
-        answers = await getAnswersUsingTag(tag.id);
-      } catch (err) {
-        // Jeśli backend quizów zwraca 404 lub 410, traktuj to jako brak powiązań
-        if (err.message && (err.message.includes('404') || err.message.includes('410'))) {
-          answers = [];
-        } else {
-          setError('Błąd podczas sprawdzania powiązań tagu z odpowiedziami quizu.');
-          setIsLoading(false);
-          return;
-        }
-      }
-      let quizUsage = { questions: [], answers: [] };
-      try {
-        quizUsage = await getQuizTagUsage(tag.id);
-      } catch (err) {
-        quizUsage = { questions: [], answers: [] };
-      }
-      setAnswersUsingTag(answers);
-      setQuizTagUsage(quizUsage);
-      setTagToDelete(tag);
-      setShowDeleteConfirm(true);
-    } catch (error) {
-      setError('Błąd podczas sprawdzania użycia tagu (terapeuci/quiz).');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!tagToDelete) return;
-    try {
-      setIsLoading(true);
-      await deleteTag(tagToDelete.id);
-      await fetchTags();
-      setShowDeleteConfirm(false);
-      setTagToDelete(null);
-      setAnswersUsingTag([]);
-      setQuizTagUsage({ questions: [], answers: [] });
-    } catch (error) {
-      setError('Błąd podczas usuwania tagu');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteAnyway = async () => {
-    if (!tagToDelete) return;
-    try {
-      setIsLoading(true);
-      if (answersUsingTag.length > 0) {
-        await removeTagFromAllAnswers(tagToDelete.id);
-      }
-      if (quizTagUsage.questions.length > 0 || quizTagUsage.answers.length > 0) {
-        await removeTagFromQuiz(tagToDelete.id);
-      }
-      await deleteTag(tagToDelete.id);
-      await fetchTags();
-      setShowDeleteConfirm(false);
-      setTagToDelete(null);
-      setAnswersUsingTag([]);
-      setQuizTagUsage({ questions: [], answers: [] });
-    } catch (error) {
-      setError('Błąd podczas usuwania tagu');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Usuwanie tagów - funkcjonalność wyłączona
+  const handleDeleteClick = () => {};
+  const handleDeleteCancel = () => {};
+  const handleDeleteConfirm = () => {};
 
   return (
     <div className="p-4">
@@ -260,83 +187,23 @@ const TagsManager = () => {
         </div>
       )}
 
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      {deleteDialog.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">Potwierdź usunięcie</h3>
-            {(answersUsingTag.length > 0 || quizTagUsage.questions.length > 0 || quizTagUsage.answers.length > 0) ? (
-              <div>
-                <p className="text-red-600 mb-4">
-                  Ten tag jest aktualnie używany:
-                </p>
-                <ul className="list-disc list-inside mb-4 space-y-2 max-h-40 overflow-y-auto">
-                  {answersUsingTag.map(ans => (
-                    <li key={ans.id} className="text-gray-700">
-                      Odpowiedź: <span className="font-semibold">{ans.text}</span> (ID pytania: {ans.questionId})
-                    </li>
-                  ))}
-                  {quizTagUsage.questions.map((q, idx) => (
-                    <li key={"q-"+idx} className="text-gray-700">
-                      Quiz: pytanie {q.qIdx+1}: <span className="font-semibold">{q.text}</span>
-                    </li>
-                  ))}
-                  {quizTagUsage.answers.map((a, idx) => (
-                    <li key={"a-"+idx} className="text-gray-700">
-                      Quiz: odpowiedź {a.aIdx+1} w pytaniu {a.qIdx+1}: <span className="font-semibold">{a.aText}</span> <span className="text-xs">(pytanie: {a.qText})</span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-gray-600 mb-6">Czy na pewno chcesz usunąć tag "{tagToDelete?.name}"? Zostanie on usunięty ze wszystkich powiązań.</p>
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => {
-                      setShowDeleteConfirm(false);
-                      setTagToDelete(null);
-                      setAnswersUsingTag([]);
-                      setQuizTagUsage({ questions: [], answers: [] });
-                    }}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                    disabled={isLoading}
-                  >
-                    Anuluj
-                  </button>
-                  <button
-                    onClick={handleDeleteAnyway}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Usuwanie...' : 'Usuń mimo to'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <p className="text-gray-600 mb-6">
-                  Czy na pewno chcesz usunąć tag "{tagToDelete?.name}"?
-                </p>
-                <div className="flex justify-end gap-3">
-                  <button
-                    onClick={() => {
-                      setShowDeleteConfirm(false);
-                      setTagToDelete(null);
-                      setAnswersUsingTag([]);
-                      setQuizTagUsage({ questions: [], answers: [] });
-                    }}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                    disabled={isLoading}
-                  >
-                    Anuluj
-                  </button>
-                  <button
-                    onClick={handleDeleteConfirm}
-                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Usuwanie...' : 'Usuń'}
-                  </button>
-                </div>
-              </>
-            )}
+            <p className="text-gray-600 mb-6">
+              Funkcja usuwania tagów została wyłączona.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={handleDeleteCancel}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >Anuluj</button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 opacity-50 cursor-not-allowed"
+                disabled
+              >Usuń</button>
+            </div>
           </div>
         </div>
       )}

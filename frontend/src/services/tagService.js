@@ -80,18 +80,10 @@ export const updateTag = async (id, tagData) => {
   }
 };
 
-// Usuń tag
-export const deleteTag = async (id) => {
-  try {
-    const response = await axios.delete(
-      `${API_URL}/admin/tags/${id}`,
-      getAuthConfig()
-    );
-    return response.data;
-  } catch (error) {
-    handleError(error);
-  }
-};
+// Wyłączone funkcje usuwania tagów (tylko jedna deklaracja każdej)
+export const deleteTag = async () => { throw new Error('Usuwanie tagów jest wyłączone.'); };
+export const removeTagFromQuiz = async () => { throw new Error('Usuwanie tagów jest wyłączone.'); };
+export const getQuizTagUsage = async () => { return { questions: [], answers: [] }; };
 
 // Kaskadowo usuń powiązania tagu z terapeutami
 export const removeTagFromAllTherapists = async (tagId) => {
@@ -100,30 +92,6 @@ export const removeTagFromAllTherapists = async (tagId) => {
       `${API_URL}/tags/${tagId}/remove-from-therapists`,
       getAuthConfig()
     );
-    return response.data;
-  } catch (error) {
-    handleError(error);
-  }
-};
-
-// Pobierz powiązania tagu z quizem (pytania/odpowiedzi)
-export const getQuizTagUsage = async (tagId) => {
-  try {
-    const response = await axios.get('http://localhost:3004/api/tags/' + tagId + '/quiz-usage');
-    return response.data;
-  } catch (error) {
-    // Jeśli 404/410, traktuj jako brak powiązań
-    if (error.response && (error.response.status === 404 || error.response.status === 410)) {
-      return { questions: [], answers: [] };
-    }
-    handleError(error);
-  }
-};
-
-// Usuń tag z quizu (opublikowany + drafty)
-export const removeTagFromQuiz = async (tagId) => {
-  try {
-    const response = await axios.delete('http://localhost:3004/api/tags/' + tagId + '/remove-from-quiz');
     return response.data;
   } catch (error) {
     handleError(error);
