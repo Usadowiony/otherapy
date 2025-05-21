@@ -6,6 +6,7 @@ import { createAnswer, updateAnswer, deleteAnswer } from "../../services/answerS
 import { getAllTags, createTag, setGlobalAuthErrorHandler } from "../../services/tagService";
 import { useAdminAuth } from './AdminAuthProvider';
 import { saveQuizDraft, getQuizDrafts, getQuizDraft, deleteQuizDraft, updateQuizDraft } from '../../services/quizDraftService';
+import { PencilIcon } from '@heroicons/react/24/outline';
 
 const EditQuestionModal = ({ open, onClose, onSave, initialText }) => {
   const [text, setText] = useState(initialText || "");
@@ -626,14 +627,39 @@ const QuizManager = forwardRef((props, ref) => {
                       <h3 className="font-semibold">Pytanie {idx + 1}:</h3>
                     </div>
                     <div className="flex gap-2">
-                      <button className="text-blue-600 hover:underline" onClick={() => handleEditQuestion(idx)}>Edytuj</button>
-                      <button className="text-red-600 hover:underline" onClick={() => handleDeleteQuestion(idx)}>Usuń</button>
+                      <button
+                        className="text-red-600 hover:text-red-800 p-1 ml-1 text-2xl font-bold flex items-center justify-center"
+                        onClick={() => handleDeleteQuestion(idx)}
+                        title="Usuń pytanie"
+                        style={{ lineHeight: 1 }}
+                      >
+                        ×
+                      </button>
                     </div>
                   </div>
-                  <div className="mb-2 font-bold">{q.text}</div>
-                  <ul className="list-disc ml-6">
+                  <div className="flex items-center mb-2">
+                    <div className="flex items-center mr-2">
+                      <button
+                        className="text-blue-500 hover:text-blue-700 p-1"
+                        onClick={() => handleEditQuestion(idx)}
+                        title="Edytuj pytanie"
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="font-bold">{q.text}</div>
+                  </div>
+                  <ul className="list-none ml-0">
                     {q.answers.map((ans, aIdx) => (
-                      <li key={ans.id || `draft-a-${aIdx}`} className="mb-1 flex items-center gap-2">
+                      <li key={ans.id || `draft-a-${aIdx}`} className="mb-1 flex items-center">
+                        <div className="flex items-center mr-2">
+                          <button className="text-blue-500 hover:text-blue-700 p-1" onClick={() => handleEditAnswer(idx, aIdx)} title="Edytuj odpowiedź">
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                          <button className="text-red-600 hover:text-red-800 p-0 ml-0.5 text-xl font-bold flex items-center justify-center" onClick={() => handleDeleteAnswer(idx, aIdx)} title="Usuń odpowiedź" style={{ lineHeight: 1 }}>
+                            ×
+                          </button>
+                        </div>
                         <span className="before:content-['•'] before:mr-2 before:text-gray-400"></span>
                         <span>{ans.text}</span>
                         {ans.tags && ans.tags.length > 0 && (
@@ -646,8 +672,6 @@ const QuizManager = forwardRef((props, ref) => {
                             })}
                           </span>
                         )}
-                        <button className="text-blue-600 hover:underline text-xs" onClick={() => handleEditAnswer(idx, aIdx)}>Edytuj</button>
-                        <button className="text-red-600 hover:underline text-xs" onClick={() => handleDeleteAnswer(idx, aIdx)}>Usuń</button>
                       </li>
                     ))}
                   </ul>
