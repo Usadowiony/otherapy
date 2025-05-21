@@ -384,6 +384,18 @@ const QuizManager = forwardRef((props, ref) => {
     });
   };
 
+  // Przesuwanie odpowiedzi w pytaniu
+  const moveAnswer = (qIdx, fromAIdx, toAIdx) => {
+    setDraftQuestions(qs => qs.map((q, i) => {
+      if (i !== qIdx) return q;
+      const answers = [...q.answers];
+      const [moved] = answers.splice(fromAIdx, 1);
+      answers.splice(toAIdx, 0, moved);
+      return { ...q, answers: answers.map((a, idx) => ({ ...a, order: idx + 1 })) };
+    }));
+    setIsDraftSaved(false);
+  };
+
   // Dodawanie/edycja pytań
   const [localIdCounter, setLocalIdCounter] = useState(1);
   const handleAddQuestion = () => {
@@ -659,6 +671,29 @@ const QuizManager = forwardRef((props, ref) => {
                           <button className="text-red-600 hover:text-red-800 p-0 ml-0.5 text-xl font-bold flex items-center justify-center" onClick={() => handleDeleteAnswer(idx, aIdx)} title="Usuń odpowiedź" style={{ lineHeight: 1 }}>
                             ×
                           </button>
+                          {/* Strzałki przesuwania odpowiedzi */}
+                          <div className="flex flex-col ml-1">
+                            {aIdx > 0 && (
+                              <button
+                                className="p-0.5 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
+                                title="Przesuń odpowiedź wyżej"
+                                onClick={() => moveAnswer(idx, aIdx, aIdx - 1)}
+                                style={{ fontSize: 14 }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                              </button>
+                            )}
+                            {aIdx < q.answers.length - 1 && (
+                              <button
+                                className="p-0.5 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center mt-0.5"
+                                title="Przesuń odpowiedź niżej"
+                                onClick={() => moveAnswer(idx, aIdx, aIdx + 1)}
+                                style={{ fontSize: 14 }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <span className="before:content-['•'] before:mr-2 before:text-gray-400"></span>
                         <span>{ans.text}</span>
