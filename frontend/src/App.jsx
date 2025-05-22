@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import AdminPanelPage from './pages/AdminPanelPage';
 import { AdminAuthProvider } from './components/admin/AdminAuthProvider';
+import NotFound from './pages/NotFound';
 
 function App() {
   console.log('Rendering App');
@@ -18,6 +19,10 @@ function App() {
               <AdminPanelPage />
             </AdminAuthProvider>
           } />
+        </Routes>
+        <Routes>
+          {/* Fallback route for 404 */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
     </BrowserRouter>

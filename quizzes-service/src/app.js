@@ -15,10 +15,14 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Logowanie requestów w trybie development
+// Czytelne logi requestów (tylko w dev)
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
-    console.log(`${req.method} ${req.path}`);
+    const start = Date.now();
+    res.on('finish', () => {
+      const ms = Date.now() - start;
+      console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} ${res.statusCode} - ${ms}ms`);
+    });
     next();
   });
 }
@@ -31,7 +35,7 @@ app.use('/api/quiz-drafts', quizDraftRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error(`[${new Date().toISOString()}] ERROR:`, err);
   res.status(err.status || 500).json({
     error: {
       message: err.message || 'Internal server error',
@@ -46,10 +50,10 @@ const startServer = async () => {
     await initDatabase();
     const port = process.env.PORT || 3004;
     app.listen(port, () => {
-      console.log(`Quizzes service is running on port ${port}`);
+      console.log(`Quizzes service is running on port ${port} [${process.env.NODE_ENV || 'development'}]`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error(`[${new Date().toISOString()}] Failed to start server:`, error);
     process.exit(1);
   }
 };

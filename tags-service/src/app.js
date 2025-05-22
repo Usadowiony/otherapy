@@ -15,10 +15,36 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(tagRoutes);
 
+// Czytelne logi requestów (tylko w dev)
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const ms = Date.now() - start;
+      console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} ${res.statusCode} - ${ms}ms`);
+    });
+    next();
+  });
+}
+
+// Error handling
+app.use((err, req, res, next) => {
+  console.error(`[${new Date().toISOString()}] ERROR:`, err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
 const PORT = process.env.PORT || 3003;
 (async () => {
-  await sequelize.sync();
-  app.listen(PORT, () => {
-    console.log(`Tags service running on port ${PORT}`);
-  });
+  try {
+    await sequelize.sync();
+    app.listen(PORT, () => {
+      console.log(`Tags service running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+    });
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Failed to start server:`, error);
+    process.exit(1);
+  }
 })();
