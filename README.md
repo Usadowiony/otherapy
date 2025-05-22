@@ -1,7 +1,7 @@
 # OTherapy – System dopasowywania terapeutów
 
 ## Opis projektu
-Aplikacja webowa wspierająca dopasowanie użytkownika do terapeuty na podstawie quizu. System umożliwia zarządzanie terapeutami, tagami (specjalizacje, cechy), quizem oraz posiada panel administracyjny z autoryzacją JWT.
+Aplikacja webowa wspierająca dopasowanie użytkownika do terapeuty na podstawie quizu. System umożliwia zarządzanie terapeutami, tagami (jeszcze w trakcie rozwoju), quizem oraz posiada panel administracyjny z autoryzacją JWT.
 
 ## Architektura
 - **auth-service** – logowanie admina, JWT
@@ -33,12 +33,3 @@ Aplikacja webowa wspierająca dopasowanie użytkownika do terapeuty na podstawie
    cd frontend && npm start
    ```
 4. Otwórz aplikację: [http://localhost:3000](http://localhost:3000)
-
-## Model bazy danych (ERD)
-Patrz plik `sprawozdanie` (opis tekstowy i wersja do dbdiagram.io)
-
-## Dokumentacja
-- Szczegółowy opis endpointów, architektury i modelu bazy: patrz plik `sprawozdanie`
-
-## Licencja
-MIT (do użytku edukacyjnego)
