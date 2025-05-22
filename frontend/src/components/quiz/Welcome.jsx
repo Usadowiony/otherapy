@@ -2,9 +2,9 @@ import React from 'react';
 
 const Welcome = ({ onStart }) => {
   return (
-    <>
+    <div className="w-full max-w-xl mx-auto px-4 py-6 bg-white rounded-xl">
       {/* Header */}
-      <div className="text-center">
+      <div className="text-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Witaj w OTherapy
         </h1>
@@ -14,7 +14,7 @@ const Welcome = ({ onStart }) => {
       </div>
 
       {/* Content */}
-      <div className="mt-8 space-y-4">
+      <div className="space-y-4">
         <p className="text-gray-700">
           Dzięki naszemu systemowi znajdziesz terapeutę, który najlepiej pasuje do Twoich potrzeb i oczekiwań.
         </p>
@@ -29,16 +29,16 @@ const Welcome = ({ onStart }) => {
       </div>
 
       {/* Navigation */}
-      <div className="mt-8 flex justify-end">
+      <div className="mt-10 flex justify-center">
         <button
           onClick={onStart}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold shadow"
         >
           Rozpocznij
         </button>
       </div>
-    </>
+    </div>
   );
 };
 
-export default Welcome; 
+export default Welcome;
