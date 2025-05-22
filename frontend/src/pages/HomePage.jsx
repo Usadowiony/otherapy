@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { QuizOuterContainer, QuizInnerContainer, WelcomeContainer } from '../components/common/QuizContainer';
 import Welcome from '../components/quiz/Welcome';
 import { getAllQuizzes } from '../services/quizService';
@@ -6,7 +6,6 @@ import { getQuizDraft } from '../services/quizDraftService';
 
 const HomePage = () => {
   const [currentStep, setCurrentStep] = useState('welcome');
-  const [quiz, setQuiz] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState([]); // indeksy wybranych odpowiedzi
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -24,7 +23,6 @@ const HomePage = () => {
       // Pobierz draft quizu
       const draft = await getQuizDraft(publishedQuiz.id, publishedQuiz.publishedDraftId);
       if (!draft || !draft.data || !Array.isArray(draft.data.questions)) throw new Error('Brak pytań w quizie.');
-      setQuiz(publishedQuiz);
       setQuestions(draft.data.questions);
       setAnswers(Array(draft.data.questions.length).fill(null));
       setCurrentQuestion(0);

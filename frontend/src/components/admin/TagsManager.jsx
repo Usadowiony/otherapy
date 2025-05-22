@@ -106,23 +106,6 @@ const TagsManager = () => {
     }
   };
 
-  const handleShowUsage = async (tagId) => {
-    setUsageInfo({ open: true, tagId, loading: true, therapists: [], quiz: { questions: [], answers: [] }, error: '' });
-    try {
-      const [therapists, quiz] = await Promise.all([
-        getTagTherapistUsage(tagId),
-        getTagQuizUsage(tagId)
-      ]);
-      setUsageInfo({ open: true, tagId, loading: false, therapists, quiz, error: '' });
-    } catch (err) {
-      setUsageInfo({ open: true, tagId, loading: false, therapists: [], quiz: { questions: [], answers: [] }, error: err.message || 'Błąd pobierania użycia tagu' });
-    }
-  };
-
-  const handleCloseUsage = () => {
-    setUsageInfo({ open: false, tagId: null, loading: false, therapists: [], quiz: { questions: [], answers: [] }, error: '' });
-  };
-
   return (
     <div className="p-4">
       {sessionExpired && (

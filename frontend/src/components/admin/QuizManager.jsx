@@ -1,10 +1,8 @@
 import React, { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react";
 import { getAllQuizzes, getQuiz, updateQuiz } from "../../services/quizService";
-import { getQuestionsForQuiz, createQuestion, updateQuestion, deleteQuestion } from "../../services/questionService";
-import { createAnswer, updateAnswer, deleteAnswer } from "../../services/answerService";
-import { getAllTags, createTag, setGlobalAuthErrorHandler } from "../../services/tagService";
+import { getAllTags, setGlobalAuthErrorHandler } from "../../services/tagService";
 import { useAdminAuth } from './AdminAuthProvider';
-import { saveQuizDraft, getQuizDrafts, getQuizDraft, deleteQuizDraft, updateQuizDraft } from '../../services/quizDraftService';
+import { saveQuizDraft, getQuizDrafts, deleteQuizDraft, updateQuizDraft } from '../../services/quizDraftService';
 import { PencilIcon } from '@heroicons/react/24/outline';
 
 const EditQuestionModal = ({ open, onClose, onSave, initialText }) => {
@@ -255,9 +253,8 @@ const QuizManager = forwardRef((props, ref) => {
   const [showAModal, setShowAModal] = useState(false);
   const [editAIdx, setEditAIdx] = useState({ qIdx: null, aIdx: null });
   const [validationError, setValidationError] = useState("");
-  const scrollContainerRef = useRef(null);
   const [availableTags, setAvailableTags] = useState([]);
-  const { sessionExpired, handleApiAuthError } = useAdminAuth();
+  const { handleApiAuthError } = useAdminAuth();
   const [isSaving, setIsSaving] = useState(false);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const pendingTabRef = useRef(null);
@@ -535,19 +532,6 @@ const QuizManager = forwardRef((props, ref) => {
     }
   };
 
-  // Walidacja
-  const validateQuiz = () => {
-    for (let i = 0; i < draftQuestions.length; ++i) {
-      const q = draftQuestions[i];
-      if (!q.text || !q.text.trim()) return `Pytanie ${i + 1} nie ma treści.`;
-      if (!q.answers.length) return `Pytanie ${i + 1} nie ma żadnej odpowiedzi.`;
-      for (let j = 0; j < q.answers.length; ++j) {
-        if (!q.answers[j].text || !q.answers[j].text.trim()) return `Odpowiedź ${j + 1} w pytaniu ${i + 1} jest pusta.`;
-      }
-    }
-    return null;
-  };
-
   // Obsługa usuwania draftu
   const handleAskDeleteDraft = (draft) => {
     setDraftToDelete(draft);
@@ -584,18 +568,6 @@ const QuizManager = forwardRef((props, ref) => {
   // Dodaj referencję do aktualnie załadowanego draftu
   const loadedDraft = drafts.find(d => d.id === draftInUseId) || null;
   const isPublishedDraft = draftInUseId === publishedDraftId;
-
-  // --- ODŚWIEŻANIE DRAFTU Z BACKENDU (np. po usunięciu tagu) ---
-  const refreshDraftFromBackend = async () => {
-    if (!quiz || !draftInUseId) return;
-    const drafts = await getQuizDrafts(quiz.id);
-    setDrafts(drafts);
-    const loaded = drafts.find(d => d.id === draftInUseId);
-    if (loaded) {
-      setDraftQuestions(loaded.data.questions);
-      initialStateRef.current = JSON.stringify(loaded.data.questions);
-    }
-  };
 
   // 1. Automatyczne czyszczenie tagów w draftQuestions po zmianie availableTags
   useEffect(() => {
