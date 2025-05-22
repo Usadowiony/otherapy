@@ -27,7 +27,6 @@ const LoginForm = () => {
     try {
       const response = await axios.post('http://localhost:3002/api/auth/login', credentials);
       if (response.data.token) {
-        // Zapisz token w localStorage
         localStorage.setItem('token', response.data.token);
         navigate('/admin-dashboard');
       }

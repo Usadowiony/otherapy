@@ -1,9 +1,7 @@
 import axios from 'axios';
-import { useAdminAuth } from '../components/admin/AdminAuthProvider';
 
 const API_URL = 'http://localhost:3003/api';
 
-// Konfiguracja axios z tokenem
 const getAuthConfig = () => {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -16,13 +14,11 @@ const getAuthConfig = () => {
   };
 };
 
-// Globalny handler błędów autoryzacji
 let globalAuthErrorHandler = null;
 export const setGlobalAuthErrorHandler = (handler) => {
   globalAuthErrorHandler = handler;
 };
 
-// Obsługa błędów
 const handleError = (error) => {
   if (error.response) {
     if (
@@ -34,15 +30,12 @@ const handleError = (error) => {
     }
     throw new Error(error.response.data.message || 'Wystąpił błąd serwera');
   } else if (error.request) {
-    // Nie otrzymano odpowiedzi
     throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe.');
   } else {
-    // Błąd podczas konfiguracji żądania
     throw new Error(error.message || 'Wystąpił nieoczekiwany błąd');
   }
 };
 
-// Pobierz wszystkie tagi
 export const getAllTags = async () => {
   try {
     const response = await axios.get(`${API_URL}/tags`);
@@ -52,11 +45,10 @@ export const getAllTags = async () => {
   }
 };
 
-// Utwórz nowy tag
 export const createTag = async (tagData) => {
   try {
     const response = await axios.post(
-      `${API_URL}/admin/tags`, // poprawiony endpoint
+      `${API_URL}/admin/tags`,
       tagData,
       getAuthConfig()
     );
@@ -66,7 +58,6 @@ export const createTag = async (tagData) => {
   }
 };
 
-// Aktualizuj tag
 export const updateTag = async (id, tagData) => {
   try {
     const response = await axios.put(
@@ -80,7 +71,6 @@ export const updateTag = async (id, tagData) => {
   }
 };
 
-// Usuń tag
 export const deleteTag = async (tagId) => {
   try {
     const response = await axios.delete(
@@ -96,7 +86,6 @@ export const deleteTag = async (tagId) => {
 export const removeTagFromQuiz = async () => { throw new Error('Usuwanie tagów jest wyłączone.'); };
 export const getQuizTagUsage = async () => { return { questions: [], answers: [] }; };
 
-// Kaskadowo usuń powiązania tagu z terapeutami
 export const removeTagFromAllTherapists = async (tagId) => {
   try {
     const response = await axios.delete(
@@ -109,20 +98,18 @@ export const removeTagFromAllTherapists = async (tagId) => {
   }
 };
 
-// Pobierz użycie tagu przez terapeutów
 export const getTagTherapistUsage = async (tagId) => {
   try {
-    const response = await axios.get(`http://localhost:3001/api/therapists/tags/${tagId}/usage`); // therapists-service (pewny endpoint)
+    const response = await axios.get(`http://localhost:3001/api/therapists/tags/${tagId}/usage`);
     return response.data;
   } catch (error) {
     handleError(error);
   }
 };
 
-// Pobierz użycie tagu w quizie (pytania/odpowiedzi)
 export const getTagQuizUsage = async (tagId) => {
   try {
-    const response = await axios.get(`http://localhost:3004/api/quizzes/api/tags/${tagId}/quiz-usage`); // quizzes-service (poprawiony adres)
+    const response = await axios.get(`http://localhost:3004/api/quizzes/api/tags/${tagId}/quiz-usage`);
     return response.data;
   } catch (error) {
     handleError(error);

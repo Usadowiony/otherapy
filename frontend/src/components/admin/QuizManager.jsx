@@ -141,9 +141,8 @@ const EditAnswerModal = ({ open, onClose, onSave, initialText, initialTags = [],
   ) : null;
 };
 
-// Modal do zapisu draftu z nazwą i autorem
 const SaveDraftModal = ({ open, onClose, onSave, loadedDraft, isPublishedDraft, allDrafts }) => {
-  const [mode, setMode] = useState('new'); // 'overwrite' lub 'new'
+  const [mode, setMode] = useState('new');
   const [name, setName] = useState(loadedDraft?.name || "");
   const [author, setAuthor] = useState(loadedDraft?.author || "");
   const [error, setError] = useState("");
@@ -162,7 +161,6 @@ const SaveDraftModal = ({ open, onClose, onSave, loadedDraft, isPublishedDraft, 
         setError("Nazwa i autor są wymagane");
         return;
       }
-      // Walidacja unikalności nazw (case-sensitive, nie identyczne)
       const exists = allDrafts?.some(d => d.name.trim() === name.trim());
       if (exists) {
         setError("Draft o takiej nazwie już istnieje. Nazwy muszą być unikalne.");
@@ -222,7 +220,6 @@ const SaveDraftModal = ({ open, onClose, onSave, loadedDraft, isPublishedDraft, 
   );
 };
 
-// --- helper: porównanie draftu z quizem opublikowanym ---
 function areQuestionsEqual(q1, q2) {
   if (!Array.isArray(q1) || !Array.isArray(q2) || q1.length !== q2.length) return false;
   for (let i = 0; i < q1.length; ++i) {
@@ -232,7 +229,6 @@ function areQuestionsEqual(q1, q2) {
     for (let j = 0; j < a.answers.length; ++j) {
       const aa = a.answers[j], ba = b.answers[j];
       if (aa.text !== ba.text || aa.order !== ba.order) return false;
-      // Porównanie tagów odpowiedzi:
       const tagsA = Array.isArray(aa.tags) ? aa.tags.slice().sort() : [];
       const tagsB = Array.isArray(ba.tags) ? ba.tags.slice().sort() : [];
       if (tagsA.length !== tagsB.length) return false;
@@ -246,7 +242,7 @@ function areQuestionsEqual(q1, q2) {
 
 const QuizManager = forwardRef((props, ref) => {
   const [quiz, setQuiz] = useState(null);
-  const [draftQuestions, setDraftQuestions] = useState([]); // [{id, text, order, answers: [{id, text, order}]}]
+  const [draftQuestions, setDraftQuestions] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [showQModal, setShowQModal] = useState(false);
   const [editQIdx, setEditQIdx] = useState(null);
@@ -258,14 +254,14 @@ const QuizManager = forwardRef((props, ref) => {
   const [isSaving, setIsSaving] = useState(false);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const pendingTabRef = useRef(null);
-  const [isDraftSaved, setIsDraftSaved] = useState(true); // nowa flaga
+  const [isDraftSaved, setIsDraftSaved] = useState(true);
   const [showSaveDraftModal, setShowSaveDraftModal] = useState(false);
   const [showDraftsList, setShowDraftsList] = useState(false);
   const [drafts, setDrafts] = useState([]);
   const [loadingDrafts, setLoadingDrafts] = useState(false);
   const [draftToDelete, setDraftToDelete] = useState(null);
   const [showDeleteDraftModal, setShowDeleteDraftModal] = useState(false);
-  const [draftInUseId, setDraftInUseId] = useState(null); // id draftu aktualnie edytowanego lub opublikowanego
+  const [draftInUseId, setDraftInUseId] = useState(null);
   const [publishedDraftId, setPublishedDraftId] = useState(null);
   const [publishedQuestions, setPublishedQuestions] = useState([]);
 
@@ -274,13 +270,11 @@ const QuizManager = forwardRef((props, ref) => {
     return () => setGlobalAuthErrorHandler(null);
   }, [handleApiAuthError]);
 
-  // Pobierz quiz i drafty z bazy (NIE pobieraj pytań quizu!)
   useEffect(() => {
     const fetchData = async () => {
       const quizzes = await getAllQuizzes();
       if (!quizzes.length) { setQuiz(null); setDraftQuestions([]); return; }
       setQuiz(quizzes[0]);
-      // Pobierz najnowszy draft (lub opublikowany, jeśli nie ma draftów)
       const drafts = await getQuizDrafts(quizzes[0].id);
       setDrafts(drafts);
       let draftToLoad = drafts[0];
@@ -301,7 +295,6 @@ const QuizManager = forwardRef((props, ref) => {
     getAllTags().then(setAvailableTags);
   }, []);
 
-  // Pobieranie wersji roboczych quizu (na żądanie)
   useEffect(() => {
     if (quiz && showDraftsList) {
       setLoadingDrafts(true);
@@ -312,7 +305,6 @@ const QuizManager = forwardRef((props, ref) => {
     }
   }, [quiz, showDraftsList]);
 
-  // Po załadowaniu quizu pobierz opublikowany draft (do porównań)
   useEffect(() => {
     if (!quiz) return;
     setPublishedDraftId(quiz.publishedDraftId);
@@ -326,7 +318,6 @@ const QuizManager = forwardRef((props, ref) => {
     }
   }, [quiz]);
 
-  // Zmiany?
   const initialStateRef = useRef();
   useEffect(() => {
     if (draftInUseId === publishedDraftId && publishedQuestions.length) {
@@ -336,7 +327,6 @@ const QuizManager = forwardRef((props, ref) => {
     }
   }, [draftQuestions, publishedQuestions, draftInUseId, publishedDraftId]);
 
-  // Ochrona przed utratą zmian przy odświeżeniu/przeładowaniu strony
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (hasChanges) {
@@ -348,38 +338,33 @@ const QuizManager = forwardRef((props, ref) => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasChanges]);
 
-  // Funkcja do obsługi próby zmiany zakładki (np. w AdminPanelPage)
   const handleTabChange = (nextTab) => {
     if (hasChanges) {
       setShowUnsavedModal(true);
       pendingTabRef.current = nextTab;
-      return false; // blokuj zmianę tabów
+      return false;
     }
-    return true; // pozwól na zmianę tabów
+    return true;
   };
 
   useImperativeHandle(ref, () => ({
     handleTabChange
   }));
 
-  // Funkcja do potwierdzenia porzucenia zmian
   const confirmLeave = () => {
     setShowUnsavedModal(false);
     setHasChanges(false);
     if (pendingTabRef.current) {
-      // Wywołaj zmianę tabów w AdminPanelPage (trzeba przekazać handleTabChange do propsów)
       pendingTabRef.current();
       pendingTabRef.current = null;
     }
   };
 
-  // Funkcja do anulowania porzucenia zmian
   const cancelLeave = () => {
     setShowUnsavedModal(false);
     pendingTabRef.current = null;
   };
 
-  // Dodaj funkcję przesuwania pytań
   const moveQuestion = (fromIdx, toIdx) => {
     setDraftQuestions(qs => {
       const arr = [...qs];
@@ -389,7 +374,6 @@ const QuizManager = forwardRef((props, ref) => {
     });
   };
 
-  // Przesuwanie odpowiedzi w pytaniu
   const moveAnswer = (qIdx, fromAIdx, toAIdx) => {
     setDraftQuestions(qs => qs.map((q, i) => {
       if (i !== qIdx) return q;
@@ -401,7 +385,6 @@ const QuizManager = forwardRef((props, ref) => {
     setIsDraftSaved(false);
   };
 
-  // Dodawanie/edycja pytań
   const [localIdCounter, setLocalIdCounter] = useState(1);
   const handleAddQuestion = () => {
     setEditQIdx(draftQuestions.length);
@@ -415,12 +398,10 @@ const QuizManager = forwardRef((props, ref) => {
     if (!text.trim()) return;
     setDraftQuestions(qs => {
       if (editQIdx === qs.length) {
-        // Dodaj nowe z unikalnym localId
         const newLocalId = `local-${Date.now()}-${localIdCounter}`;
         setLocalIdCounter(c => c + 1);
         return [...qs, { id: undefined, localId: newLocalId, text, order: qs.length + 1, answers: [] }];
       } else {
-        // Edytuj
         return qs.map((q, i) => i === editQIdx ? { ...q, text } : q);
       }
     });
@@ -430,7 +411,6 @@ const QuizManager = forwardRef((props, ref) => {
     setDraftQuestions(qs => qs.filter((_, i) => i !== idx).map((q, i) => ({ ...q, order: i + 1 })));
   };
 
-  // Dodawanie/edycja odpowiedzi
   const handleAddAnswer = (qIdx) => {
     setEditAIdx({ qIdx, aIdx: draftQuestions[qIdx].answers.length });
     setShowAModal(true);
@@ -456,7 +436,6 @@ const QuizManager = forwardRef((props, ref) => {
     setShowAModal(false);
   };
 
-  // Usuwanie odpowiedzi
   const handleDeleteAnswer = (qIdx, aIdx) => {
     setDraftQuestions(qs => qs.map((q, i) => {
       if (i !== qIdx) return q;
@@ -466,9 +445,7 @@ const QuizManager = forwardRef((props, ref) => {
     setIsDraftSaved(false);
   };
 
-  // Nowa funkcja: zapisuje draft do bazy przez mikroserwis
   const handleSaveDraft = () => {
-    // Walidacja: każde pytanie musi mieć co najmniej 2 odpowiedzi
     const invalidIndexes = draftQuestions
       .map((q, idx) => (!q.answers || q.answers.length < 2 ? idx + 1 : null))
       .filter(idx => idx !== null);
@@ -485,13 +462,10 @@ const QuizManager = forwardRef((props, ref) => {
     setIsSaving(true);
     try {
       if (mode === 'overwrite' && loadedDraft && !isPublishedDraft) {
-        // Nadpisz aktualny draft (PUT)
         await updateQuizDraft(quiz.id, loadedDraft.id, { name: loadedDraft.name, author: loadedDraft.author, questions: draftQuestions });
       } else {
-        // Zapisz jako nowy draft (POST)
         await saveQuizDraft(quiz.id, { name, author, questions: draftQuestions });
       }
-      // Odśwież drafty i ustaw aktualny draft jako edytowany
       const drafts = await getQuizDrafts(quiz.id);
       setDrafts(drafts);
       setDraftInUseId(drafts[0]?.id);
@@ -506,20 +480,16 @@ const QuizManager = forwardRef((props, ref) => {
     }
   };
 
-  // Publikacja quizu: ustaw publishedDraftId na aktualny draft
   const handlePublish = async () => {
     if (!quiz || !draftInUseId) return;
     setIsSaving(true);
     try {
-      // Ustaw publishedDraftId w quizie
       await updateQuiz(quiz.id, { publishedDraftId: draftInUseId });
-      // Odśwież quiz i drafty
       const refreshedQuiz = await getQuiz(quiz.id);
       setQuiz(refreshedQuiz);
       setPublishedDraftId(refreshedQuiz.publishedDraftId);
       const drafts = await getQuizDrafts(quiz.id);
       setDrafts(drafts);
-      // Ustaw opublikowane pytania do porównań
       const published = drafts.find(d => d.id === refreshedQuiz.publishedDraftId);
       setPublishedQuestions(published ? published.data.questions : []);
       setHasChanges(false);
@@ -532,7 +502,6 @@ const QuizManager = forwardRef((props, ref) => {
     }
   };
 
-  // Obsługa usuwania draftu
   const handleAskDeleteDraft = (draft) => {
     setDraftToDelete(draft);
     setShowDeleteDraftModal(true);
@@ -540,8 +509,7 @@ const QuizManager = forwardRef((props, ref) => {
   const handleDeleteDraft = async () => {
     if (!draftToDelete) return;
     try {
-      await deleteQuizDraft(quiz.id, draftToDelete.id); // faktyczne usunięcie w backendzie
-      // Odśwież listę draftów z backendu
+      await deleteQuizDraft(quiz.id, draftToDelete.id);
       const ds = await getQuizDrafts(quiz.id);
       setDrafts(ds);
     } catch (err) {
@@ -552,7 +520,6 @@ const QuizManager = forwardRef((props, ref) => {
     }
   };
 
-  // Obsługa ładowania draftu
   const handleLoadDraft = (draft) => {
     if (hasChanges) {
       if (!window.confirm('Masz niezapisane zmiany. Czy na pewno chcesz załadować wybraną wersję?')) return;
@@ -561,15 +528,13 @@ const QuizManager = forwardRef((props, ref) => {
     setShowDraftsList(false);
     setDraftInUseId(draft.id);
     initialStateRef.current = JSON.stringify(draft.data.questions);
-    setHasChanges(false); // zawsze po załadowaniu draftu brak zmian
+    setHasChanges(false);
     setIsDraftSaved(true);
   };
 
-  // Dodaj referencję do aktualnie załadowanego draftu
   const loadedDraft = drafts.find(d => d.id === draftInUseId) || null;
   const isPublishedDraft = draftInUseId === publishedDraftId;
 
-  // 1. Automatyczne czyszczenie tagów w draftQuestions po zmianie availableTags
   useEffect(() => {
     setDraftQuestions(qs =>
       qs.map(q => ({
@@ -585,27 +550,22 @@ const QuizManager = forwardRef((props, ref) => {
 
   return (
     <div className="flex flex-col p-0 min-h-0 h-full">
-      {/* GÓRNA NAWIGACJA I STATUS */}
       <div className="p-4 pb-2">
         <h2 className="text-2xl font-bold mb-4">Zarządzanie quizem</h2>
-        {/* Info o aktualnie załadowanym drafcie */}
         {loadedDraft && (
           <div className="mb-1 text-xs text-gray-500">
             Wersja: <span className="font-semibold">{loadedDraft.name}</span> • {loadedDraft.author} • {new Date(loadedDraft.createdAt).toLocaleString()}
             {isPublishedDraft && <span className="ml-2 text-green-600">[opublikowany]</span>}
           </div>
         )}
-        {/* Status zmian */}
         {hasChanges ? (
           <div className="mb-2 text-orange-600 font-semibold">Masz niezapisane zmiany!</div>
         ) : (
           <div className="mb-2 text-green-700">Wszystkie zmiany zapisane</div>
         )}
-        {/* Walidacja */}
         {validationError && (
           <div className="mt-2 mb-2 text-red-600 font-semibold text-center">{validationError}</div>
         )}
-        {/* Przyciski nawigacji */}
         {quiz && draftQuestions.length > 0 && (
           <div className="flex justify-center gap-4 mt-8 mb-4 px-4">
             <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={handleAddQuestion}>Dodaj nowe pytanie</button>
@@ -633,9 +593,7 @@ const QuizManager = forwardRef((props, ref) => {
           </div>
         )}
       </div>
-      {/* PYTANIA - bez osobnego scrolla, całość przewija się razem */}
       <div className="flex-1 px-4 pb-2">
-        {/* USUNIĘTO STRONĘ POWITALNĄ */}
         {!quiz ? (
           <div className="mb-6 border rounded-lg p-4 bg-white text-center text-red-600 font-semibold">
             Quiz nie został jeszcze utworzony. Skontaktuj się z administratorem lub utwórz quiz w backendzie.
@@ -647,14 +605,12 @@ const QuizManager = forwardRef((props, ref) => {
           </div>
         ) : (
           <div className="relative">
-            {/* USUNIĘTO overflow-y-auto i maxHeight! */}
             {draftQuestions.map((q, idx) => (
               <div
                 key={q.id || q.localId}
                 className="mb-6 border rounded-lg p-4 bg-white transition-shadow select-none hover:bg-blue-50"
                 style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', userSelect: 'none' }}
               >
-                {/* Górny pasek: tytuł pytania + X po prawej */}
                 <div className="flex justify-between items-center mb-2">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold">Pytanie {idx + 1}:</h3>
@@ -668,7 +624,6 @@ const QuizManager = forwardRef((props, ref) => {
                     ×
                   </button>
                 </div>
-                {/* Treść pytania i edycja */}
                 <div className="flex items-center mb-2">
                   <div className="flex items-center mr-2">
                     <button
@@ -691,7 +646,6 @@ const QuizManager = forwardRef((props, ref) => {
                         <button className="text-red-600 hover:text-red-800 p-0 ml-0.5 text-xl font-bold flex items-center justify-center" onClick={() => handleDeleteAnswer(idx, aIdx)} title="Usuń odpowiedź" style={{ lineHeight: 1 }}>
                           ×
                         </button>
-                        {/* Strzałki przesuwania odpowiedzi */}
                         {aIdx > 0 && (
                           <button
                             className="p-0.5 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center ml-1"
@@ -728,7 +682,6 @@ const QuizManager = forwardRef((props, ref) => {
                     </li>
                   ))}
                 </ul>
-                {/* Przycisk Dodaj odpowiedź i strzałki przesuwania pytania w dolnym pasku */}
                 <div className="flex items-center gap-3 mt-3 mb-2 justify-between">
                   <button className="px-2 py-1 text-sm bg-green-600 text-white rounded scale-90" style={{ fontSize: '0.85rem' }} onClick={() => handleAddAnswer(idx)}>
                     Dodaj odpowiedź
@@ -761,7 +714,6 @@ const QuizManager = forwardRef((props, ref) => {
           </div>
         )}
       </div>
-      {/* Modale */}
       <EditQuestionModal
         open={showQModal}
         onClose={() => setShowQModal(false)}
@@ -803,7 +755,6 @@ const QuizManager = forwardRef((props, ref) => {
         isPublishedDraft={isPublishedDraft}
         allDrafts={drafts}
       />
-      {/* Loader na czas zapisu */}
       {isSaving && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-lg flex flex-col items-center">
@@ -812,7 +763,6 @@ const QuizManager = forwardRef((props, ref) => {
           </div>
         </div>
       )}
-      {/* Modal ostrzegający o niezapisanych zmianach */}
       {showUnsavedModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-lg max-w-md w-full">
@@ -825,7 +775,6 @@ const QuizManager = forwardRef((props, ref) => {
           </div>
         </div>
       )}
-      {/* Lista wersji roboczych */}
       {showDraftsList && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-lg max-w-lg w-full">
@@ -865,7 +814,6 @@ const QuizManager = forwardRef((props, ref) => {
           </div>
         </div>
       )}
-      {/* Modal potwierdzający usunięcie draftu */}
       {showDeleteDraftModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-lg max-w-md w-full">

@@ -7,7 +7,7 @@ import { getQuizDraft } from '../services/quizDraftService';
 const HomePage = () => {
   const [currentStep, setCurrentStep] = useState('welcome');
   const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState([]); // indeksy wybranych odpowiedzi
+  const [answers, setAnswers] = useState([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,11 +16,9 @@ const HomePage = () => {
     setLoading(true);
     setError('');
     try {
-      // Pobierz quizy i znajdź opublikowany (z publishedDraftId)
       const quizzes = await getAllQuizzes();
       const publishedQuiz = quizzes.find(q => q.publishedDraftId);
       if (!publishedQuiz) throw new Error('Brak opublikowanego quizu.');
-      // Pobierz draft quizu
       const draft = await getQuizDraft(publishedQuiz.id, publishedQuiz.publishedDraftId);
       if (!draft || !draft.data || !Array.isArray(draft.data.questions)) throw new Error('Brak pytań w quizie.');
       setQuestions(draft.data.questions);

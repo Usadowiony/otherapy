@@ -9,13 +9,13 @@ import { checkAdminToken } from '../services/authService';
 const AdminPanelPage = () => {
   const { isAuthenticated } = useAdminAuth();
   const navigate = useNavigate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
     }
   }, [isAuthenticated, navigate]);
 
-  // Sprawdź ważność tokenu przy wejściu na panel admina
   useEffect(() => {
     const verifyToken = async () => {
       try {
@@ -25,7 +25,7 @@ const AdminPanelPage = () => {
       }
     };
     verifyToken();
-  }, []);
+  }, [navigate]);
 
   const [activeTab, setActiveTab] = useState('therapists');
   const quizManagerRef = useRef();
@@ -39,15 +39,12 @@ const AdminPanelPage = () => {
   const handleTabChange = (tabId) => {
     if (tabId === activeTab) return;
     if (tabId === 'quiz' && quizManagerRef.current && quizManagerRef.current.handleTabChange) {
-      // Przechodzimy do quizu, nie blokuj
       setActiveTab(tabId);
       return;
     }
     if (activeTab === 'quiz' && quizManagerRef.current && quizManagerRef.current.handleTabChange) {
-      // Przechodzimy z quizu, sprawdź czy są niezapisane zmiany
       const allow = quizManagerRef.current.handleTabChange(() => setActiveTab(tabId));
       if (allow) setActiveTab(tabId);
-      // Jeśli nie, QuizManager wyświetli modal i sam wywoła setActiveTab po potwierdzeniu
       return;
     }
     setActiveTab(tabId);
@@ -56,9 +53,7 @@ const AdminPanelPage = () => {
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        {/* Kontener główny */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* Zakładki */}
           <div className="border-b border-gray-200">
             <nav className="flex -mb-px">
               {tabs.map((tab) => (
@@ -79,7 +74,6 @@ const AdminPanelPage = () => {
             </nav>
           </div>
 
-          {/* Zawartość zakładek */}
           <div className="p-6">
             {activeTab === 'therapists' && <TherapistsManager />}
             {activeTab === 'tags' && <TagsManager />}

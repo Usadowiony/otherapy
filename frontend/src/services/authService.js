@@ -1,4 +1,3 @@
-// Minimalny serwis do sprawdzania ważności tokenu admina
 import axios from 'axios';
 
 const API_URL = 'http://localhost:3002/api/auth/profile';
@@ -8,7 +7,6 @@ export const checkAdminToken = async (mode = 'check') => {
   if (!token) throw new Error('Brak tokenu');
   try {
     if (mode === 'refresh') {
-      // Załóżmy, że endpoint /api/auth/refresh zwraca nowy token
       const res = await axios.post('http://localhost:3002/api/auth/refresh', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });

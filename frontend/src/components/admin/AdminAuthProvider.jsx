@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkAdminToken } from '../../services/authService';
 
@@ -6,7 +6,7 @@ const AdminAuthContext = createContext();
 
 export const useAdminAuth = () => useContext(AdminAuthContext);
 
-const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minut w ms
+const INACTIVITY_LIMIT = 30 * 60 * 1000;
 
 export const AdminAuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
@@ -17,8 +17,7 @@ export const AdminAuthProvider = ({ children }) => {
   const timerRef = useRef();
   const popupTimeoutRef = useRef();
 
-  // Wylogowanie admina
-  const logout = (expired = false) => {
+  const logout = useCallback((expired = false) => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
     setSessionExpired(expired);
@@ -33,17 +32,15 @@ export const AdminAuthProvider = ({ children }) => {
     } else {
       navigate('/login');
     }
-  };
+  }, [navigate]);
 
-  // Resetuj timer nieaktywności
-  const resetInactivityTimer = () => {
+  const resetInactivityTimer = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       logout(true);
     }, INACTIVITY_LIMIT);
-  };
+  }, [logout]);
 
-  // Nasłuchuj aktywności użytkownika
   useEffect(() => {
     if (!isAuthenticated) return;
     const events = ['mousemove', 'keydown', 'mousedown', 'touchstart'];
@@ -54,25 +51,8 @@ export const AdminAuthProvider = ({ children }) => {
       events.forEach(event => window.removeEventListener(event, activityHandler));
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, resetInactivityTimer]);
 
-  // Odśwież token przy aktywności admina (jeśli jest zalogowany)
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const refreshToken = async () => {
-      try {
-        await checkAdminToken('refresh'); // Dodamy obsługę refresh w serwisie
-      } catch (err) {
-        logout(true);
-      }
-    };
-    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart'];
-    const handler = () => refreshToken();
-    events.forEach(event => window.addEventListener(event, handler));
-    return () => events.forEach(event => window.removeEventListener(event, handler));
-  }, [isAuthenticated]);
-
-  // Globalna obsługa błędów autoryzacji
   useEffect(() => {
     const handleAuthError = (event) => {
       if (event.key === 'admin_force_logout') {
@@ -81,17 +61,14 @@ export const AdminAuthProvider = ({ children }) => {
     };
     window.addEventListener('storage', handleAuthError);
     return () => window.removeEventListener('storage', handleAuthError);
-  }, []);
+  }, [logout]);
 
-  // Sprawdzaj token przy każdej zmianie isAuthenticated
   useEffect(() => {
     if (!localStorage.getItem('token') && isAuthenticated) {
-      // Token zniknął, a stan mówi że jesteśmy zalogowani
       logout(true);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, logout]);
 
-  // Sprawdzaj token w localStorage cyklicznie (np. co 1s)
   useEffect(() => {
     if (!isAuthenticated) return;
     const interval = setInterval(() => {
@@ -100,9 +77,8 @@ export const AdminAuthProvider = ({ children }) => {
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, logout]);
 
-  // Cykliczne sprawdzanie ważności tokenu na backendzie (co 60s)
   useEffect(() => {
     if (!isAuthenticated) return;
     const interval = setInterval(async () => {
@@ -111,11 +87,25 @@ export const AdminAuthProvider = ({ children }) => {
       } catch (err) {
         logout(true);
       }
-    }, 60000); // co 60 sekund
+    }, 60000);
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, logout]);
 
-  // Funkcja do wywołania przy błędzie autoryzacji w API
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const refreshToken = async () => {
+      try {
+        await checkAdminToken('refresh');
+      } catch (err) {
+        logout(true);
+      }
+    };
+    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart'];
+    const handler = () => refreshToken();
+    events.forEach(event => window.addEventListener(event, handler));
+    return () => events.forEach(event => window.removeEventListener(event, handler));
+  }, [isAuthenticated, logout]);
+
   const handleApiAuthError = () => {
     localStorage.setItem('admin_force_logout', Date.now());
     logout(true);

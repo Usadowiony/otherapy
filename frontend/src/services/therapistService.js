@@ -1,9 +1,7 @@
 import axios from 'axios';
 
-// Poprawny adres API dla terapeutów:
 const API_URL = 'http://localhost:3001/api';
 
-// Konfiguracja axios z tokenem
 const getAuthConfig = () => {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -21,7 +19,6 @@ export const setGlobalAuthErrorHandler = (handler) => {
   globalAuthErrorHandler = handler;
 };
 
-// Obsługa błędów
 const handleError = (error) => {
   if (error.response) {
     if (
@@ -33,15 +30,12 @@ const handleError = (error) => {
     }
     throw new Error(error.response.data.message || 'Wystąpił błąd serwera');
   } else if (error.request) {
-    // Nie otrzymano odpowiedzi
     throw new Error('Nie można połączyć się z serwerem. Sprawdź połączenie internetowe.');
   } else {
-    // Błąd podczas konfiguracji żądania
     throw new Error(error.message || 'Wystąpił nieoczekiwany błąd');
   }
 };
 
-// Pobierz wszystkich terapeutów
 export const getAllTherapists = async () => {
   try {
     const response = await axios.get(`${API_URL}/therapists`);
@@ -51,7 +45,6 @@ export const getAllTherapists = async () => {
   }
 };
 
-// Pobierz pojedynczego terapeutę
 export const getTherapistById = async (id) => {
   try {
     const response = await axios.get(`${API_URL}/therapists/${id}`);
@@ -61,7 +54,6 @@ export const getTherapistById = async (id) => {
   }
 };
 
-// Utwórz nowego terapeutę
 export const createTherapist = async (therapistData) => {
   try {
     const response = await axios.post(
@@ -75,7 +67,6 @@ export const createTherapist = async (therapistData) => {
   }
 };
 
-// Aktualizuj terapeutę
 export const updateTherapist = async (id, therapistData) => {
   try {
     const response = await axios.put(
@@ -89,7 +80,6 @@ export const updateTherapist = async (id, therapistData) => {
   }
 };
 
-// Usuń terapeutę
 export const deleteTherapist = async (id) => {
   try {
     const response = await axios.delete(
@@ -102,6 +92,5 @@ export const deleteTherapist = async (id) => {
   }
 };
 
-// Wyłączone funkcje usuwania tagów
 export const removeTagFromAllTherapists = async () => { throw new Error('Usuwanie tagów jest wyłączone.'); };
 export const getTherapistsUsingTag = async () => { return []; };
