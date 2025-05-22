@@ -654,21 +654,21 @@ const QuizManager = forwardRef((props, ref) => {
                 className="mb-6 border rounded-lg p-4 bg-white transition-shadow select-none hover:bg-blue-50"
                 style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', userSelect: 'none' }}
               >
+                {/* Górny pasek: tytuł pytania + X po prawej */}
                 <div className="flex justify-between items-center mb-2">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold">Pytanie {idx + 1}:</h3>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      className="text-red-600 hover:text-red-800 p-1 ml-1 text-2xl font-bold flex items-center justify-center"
-                      onClick={() => handleDeleteQuestion(idx)}
-                      title="Usuń pytanie"
-                      style={{ lineHeight: 1 }}
-                    >
-                      ×
-                    </button>
-                  </div>
+                  <button
+                    className="text-red-600 hover:text-red-800 p-1 ml-1 text-2xl font-bold flex items-center justify-center"
+                    onClick={() => handleDeleteQuestion(idx)}
+                    title="Usuń pytanie"
+                    style={{ lineHeight: 1 }}
+                  >
+                    ×
+                  </button>
                 </div>
+                {/* Treść pytania i edycja */}
                 <div className="flex items-center mb-2">
                   <div className="flex items-center mr-2">
                     <button
@@ -684,7 +684,7 @@ const QuizManager = forwardRef((props, ref) => {
                 <ul className="list-none ml-0">
                   {q.answers.map((ans, aIdx) => (
                     <li key={ans.id || `draft-a-${aIdx}`} className="mb-1 flex items-center">
-                      <div className="flex items-center mr-2">
+                      <div className="flex items-center mr-2 gap-1">
                         <button className="text-blue-500 hover:text-blue-700 p-1" onClick={() => handleEditAnswer(idx, aIdx)} title="Edytuj odpowiedź">
                           <PencilIcon className="h-4 w-4" />
                         </button>
@@ -692,28 +692,26 @@ const QuizManager = forwardRef((props, ref) => {
                           ×
                         </button>
                         {/* Strzałki przesuwania odpowiedzi */}
-                        <div className="flex flex-col ml-1">
-                          {aIdx > 0 && (
-                            <button
-                              className="p-0.5 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
-                              title="Przesuń odpowiedź wyżej"
-                              onClick={() => moveAnswer(idx, aIdx, aIdx - 1)}
-                              style={{ fontSize: 14 }}
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                            </button>
-                          )}
-                          {aIdx < q.answers.length - 1 && (
-                            <button
-                              className="p-0.5 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center mt-0.5"
-                              title="Przesuń odpowiedź niżej"
-                              onClick={() => moveAnswer(idx, aIdx, aIdx + 1)}
-                              style={{ fontSize: 14 }}
-                            >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                            </button>
-                          )}
-                        </div>
+                        {aIdx > 0 && (
+                          <button
+                            className="p-0.5 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center ml-1"
+                            title="Przesuń odpowiedź wyżej"
+                            onClick={() => moveAnswer(idx, aIdx, aIdx - 1)}
+                            style={{ fontSize: 14 }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                          </button>
+                        )}
+                        {aIdx < q.answers.length - 1 && (
+                          <button
+                            className="p-0.5 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center ml-1"
+                            title="Przesuń odpowiedź niżej"
+                            onClick={() => moveAnswer(idx, aIdx, aIdx + 1)}
+                            style={{ fontSize: 14 }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                          </button>
+                        )}
                       </div>
                       <span className="before:content-['•'] before:mr-2 before:text-gray-400"></span>
                       <span>{ans.text}</span>
@@ -730,29 +728,33 @@ const QuizManager = forwardRef((props, ref) => {
                     </li>
                   ))}
                 </ul>
-                <button className="mt-2 px-3 py-1 bg-green-600 text-white rounded" onClick={() => handleAddAnswer(idx)}>Dodaj odpowiedź</button>
-                {/* Strzałki przesuwania */}
-                <div className="flex gap-2 justify-end mt-4">
-                  {idx > 0 && (
-                    <button
-                      className="p-1 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
-                      title="Przesuń wyżej"
-                      onClick={() => moveQuestion(idx, idx - 1)}
-                      style={{ fontSize: 18 }}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                    </button>
-                  )}
-                  {idx < draftQuestions.length - 1 && (
-                    <button
-                      className="p-1 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
-                      title="Przesuń niżej"
-                      onClick={() => moveQuestion(idx, idx + 1)}
-                      style={{ fontSize: 18 }}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
-                  )}
+                {/* Przycisk Dodaj odpowiedź i strzałki przesuwania pytania w dolnym pasku */}
+                <div className="flex items-center gap-3 mt-3 mb-2 justify-between">
+                  <button className="px-2 py-1 text-sm bg-green-600 text-white rounded scale-90" style={{ fontSize: '0.85rem' }} onClick={() => handleAddAnswer(idx)}>
+                    Dodaj odpowiedź
+                  </button>
+                  <div className="flex gap-2 ml-2">
+                    {idx > 0 && (
+                      <button
+                        className="p-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-600 flex items-center justify-center"
+                        title="Przesuń pytanie wyżej"
+                        onClick={() => moveQuestion(idx, idx - 1)}
+                        style={{ fontSize: 18 }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                      </button>
+                    )}
+                    {idx < draftQuestions.length - 1 && (
+                      <button
+                        className="p-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-600 flex items-center justify-center"
+                        title="Przesuń pytanie niżej"
+                        onClick={() => moveQuestion(idx, idx + 1)}
+                        style={{ fontSize: 18 }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
