@@ -1,0 +1,188 @@
+# Sprawozdanie z projektu: OTherapy – System dopasowywania terapeutów
+
+## 1. Opis projektu
+
+Projekt OTherapy to aplikacja webowa wspierająca proces dopasowywania użytkowników do odpowiednich terapeutów na podstawie krótkiego quizu. System umożliwia zarządzanie bazą terapeutów, tagów (specjalizacji, cech), a także quizem, który pozwala lepiej zrozumieć potrzeby użytkownika. Aplikacja posiada panel administracyjny do zarządzania danymi oraz część użytkową (quiz).
+
+**Główne funkcjonalności:**
+- Rozwiązywanie quizu przez użytkownika w celu dopasowania terapeuty.
+- Zarządzanie terapeutami (CRUD) przez administratora.
+- Zarządzanie tagami (CRUD) przez administratora.
+- Zarządzanie quizem i jego wersjami roboczymi przez administratora.
+- Autoryzacja administratora (logowanie, sesja JWT, wygasanie tokenu).
+- Strona powitalna, strona 404, nowoczesny i responsywny interfejs.
+
+## 2. Opis architektury
+
+Projekt oparty jest na architekturze mikroserwisowej. Każdy mikroserwis posiada własną bazę danych (SQLite) i komunikuje się z innymi serwisami przez REST API (HTTP).
+
+**Główne moduły/serwisy:**
+- **auth-service** – obsługa logowania admina, generowanie i odświeżanie tokenów JWT, weryfikacja uprawnień.
+- **therapists-service** – zarządzanie terapeutami, powiązania terapeuta-tag, udostępnianie listy terapeutów i szczegółów.
+- **tags-service** – zarządzanie tagami, powiązania tagów z terapeutami i quizem, walidacja usuwania tagów.
+- **quizzes-service** – zarządzanie quizem, pytaniami, odpowiedziami, wersjami roboczymi quizu.
+- **frontend** – aplikacja React, która korzysta z REST API powyższych serwisów.
+
+**Komunikacja:**
+- Frontend komunikuje się z każdym mikroserwisem przez REST API (np. `/api/therapists`, `/api/tags`, `/api/quizzes`, `/api/auth`).
+- Mikroserwisy komunikują się między sobą przez REST (np. tags-service pyta therapists-service o powiązania tagów).
+
+## 3. Model bazy danych (ERD)
+
+```
+[Tag] <--- [TherapistTag] ---> [Therapist]
+   ^                             ^
+   |                             |
+   |                             |
+[AnswerTag]                  [Quiz]
+   ^                             |
+   |                             |
+[Answer] <--- [Question] <--- [QuizDraft]
+```
+
+- **Tag**: id, name
+- **Therapist**: id, firstName, lastName, specialization, description
+- **TherapistTag**: id, TherapistId, TagId
+- **Quiz**: id, title, description, publishedDraftId
+- **QuizDraft**: id, QuizId, data (JSON)
+- **Question**: id, text, order, QuizId
+- **Answer**: id, text, order, QuestionId
+- **QuestionTag/AnswerTag**: powiązania tagów z pytaniami/odpowiedziami
+
+## 4. Opis endpointów
+
+### auth-service
+- **POST /api/auth/login**
+  - Opis: logowanie admina
+  - Parametry: `{ username, password }` (body)
+  - Autoryzacja: brak
+  - Odpowiedź: `{ token }`
+  - Przykład: `{ "token": "eyJhbGciOiJI..." }`
+
+- **POST /api/auth/refresh**
+  - Opis: odświeżenie tokenu JWT (jeśli stary jest ważny)
+  - Nagłówek: `Authorization: Bearer <token>`
+  - Autoryzacja: JWT admin
+  - Odpowiedź: `{ token }`
+
+- **GET /api/auth/profile**
+  - Opis: pobranie profilu admina
+  - Nagłówek: `Authorization: Bearer <token>`
+  - Autoryzacja: JWT admin
+  - Odpowiedź: `{ username, role }`
+
+### therapists-service
+- **GET /api/therapists**
+  - Opis: lista wszystkich terapeutów
+  - Autoryzacja: brak
+  - Odpowiedź: `[ { id, firstName, lastName, specialization, ... } ]`
+
+- **GET /api/therapists/:id**
+  - Opis: szczegóły terapeuty
+  - Autoryzacja: brak
+  - Odpowiedź: `{ id, firstName, lastName, ... }`
+
+- **POST /api/therapists**
+  - Opis: dodaj terapeutę
+  - Body: `{ firstName, lastName, specialization, description, tagIds }`
+  - Autoryzacja: JWT admin
+  - Odpowiedź: `{ id, ... }`
+
+- **PUT /api/therapists/:id**
+  - Opis: edytuj terapeutę
+  - Body: `{ ... }`
+  - Autoryzacja: JWT admin
+  - Odpowiedź: `{ id, ... }`
+
+- **DELETE /api/therapists/:id**
+  - Opis: usuń terapeutę
+  - Autoryzacja: JWT admin
+  - Odpowiedź: `{ message }`
+
+- **GET /api/tags/:tagId/usage**
+  - Opis: lista terapeutów używających danego tagu
+  - Autoryzacja: brak
+  - Odpowiedź: `[ { id, firstName, lastName } ]`
+
+### tags-service
+- **GET /api/tags**
+  - Opis: lista tagów
+  - Autoryzacja: brak
+  - Odpowiedź: `[ { id, name } ]`
+
+- **POST /api/admin/tags**
+  - Opis: dodaj tag
+  - Body: `{ name }`
+  - Autoryzacja: JWT admin
+  - Odpowiedź: `{ id, name }`
+
+- **PUT /api/admin/tags/:tagId**
+  - Opis: edytuj tag
+  - Body: `{ name }`
+  - Autoryzacja: JWT admin
+  - Odpowiedź: `{ id, name }`
+
+- **DELETE /api/admin/tags/:tagId**
+  - Opis: usuń tag (z walidacją powiązań)
+  - Autoryzacja: JWT admin
+  - Odpowiedź: `{ success: true }`
+
+- **GET /api/tags/:tagId**
+  - Opis: szczegóły tagu
+  - Autoryzacja: brak
+  - Odpowiedź: `{ id, name }`
+
+### quizzes-service
+- **GET /api/quizzes**
+  - Opis: lista quizów (meta)
+  - Autoryzacja: brak
+  - Odpowiedź: `[ { id, title, description } ]`
+
+- **GET /api/quizzes/:id**
+  - Opis: szczegóły quizu
+  - Autoryzacja: brak
+  - Odpowiedź: `{ id, title, description, ... }`
+
+- **PUT /api/quizzes/:id**
+  - Opis: edytuj quiz (meta)
+  - Body: `{ ... }`
+  - Autoryzacja: JWT admin
+  - Odpowiedź: `{ id, ... }`
+
+- **/api/quiz-drafts/** (CRUD wersji roboczych quizu)
+  - POST, GET, PUT, DELETE – analogicznie jak wyżej, autoryzacja JWT admin
+
+## Przykłady odpowiedzi
+
+- **GET /api/tags**
+```
+[
+  { "id": 1, "name": "Depresja" },
+  { "id": 2, "name": "Lęk" }
+]
+```
+
+- **GET /api/therapists/1**
+```
+{
+  "id": 1,
+  "firstName": "Jan",
+  "lastName": "Kowalski",
+  "specialization": "Psycholog",
+  "description": "Doświadczony terapeuta...",
+  "tags": [1,2]
+}
+```
+
+- **POST /api/auth/login**
+```
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+## Uwagi końcowe
+- Każdy mikroserwis posiada własną bazę SQLite i ORM Sequelize.
+- Komunikacja między mikroserwisami i z frontendem odbywa się przez REST API.
+- Autoryzacja admina oparta o JWT, z mechanizmem wygasania i odświeżania tokenu.
+- Frontend (React) korzysta z REST API do wszystkich operacji.
