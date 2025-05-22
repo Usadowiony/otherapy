@@ -239,8 +239,10 @@ const TagsManager = () => {
                             {usageInfo.therapists.length === 0 ? (
                               <span className="text-gray-500 ml-2">Brak</span>
                             ) : (
-                              <ul className="list-disc list-inside ml-4">
-                                {usageInfo.therapists.map(t => <li key={t.id}>{t.name || t.fullName || t.email || t.id}</li>)}
+                              <ul className="ml-2">
+                                {usageInfo.therapists.map(t => (
+                                  <li key={t.id} className="mb-1">• {t.firstName} {t.lastName}</li>
+                                ))}
                               </ul>
                             )}
                           </div>
@@ -250,9 +252,19 @@ const TagsManager = () => {
                             {(!usageInfo.quiz.questions.length && !usageInfo.quiz.answers.length) ? (
                               <span className="text-gray-500 ml-2">Brak</span>
                             ) : (
-                              <ul className="list-disc list-inside ml-4">
-                                {usageInfo.quiz.questions.map(q => <li key={q.id}>Pytanie: {q.text || q.id}</li>)}
-                                {usageInfo.quiz.answers.map(a => <li key={a.id}>Odpowiedź: {a.text || a.id}</li>)}
+                              <ul className="ml-2">
+                                {/* Odpowiedzi */}
+                                {usageInfo.quiz.answers.map(a => (
+                                  <li key={a.aText + '-' + (a.aIdx ?? Math.random())} className="mb-1">
+                                    • {a.aText} <span className="text-gray-400">(pytanie nr {a.qIdx || '?'})</span>
+                                  </li>
+                                ))}
+                                {/* Pytania */}
+                                {usageInfo.quiz.questions.map((q, idx) => (
+                                  <li key={q.text + '-' + (q.qIdx ?? idx)} className="mb-1">
+                                    • {q.text} <span className="text-gray-400">(nr {q.qIdx || q.number || idx + 1})</span>
+                                  </li>
+                                ))}
                               </ul>
                             )}
                           </div>
