@@ -4,6 +4,7 @@ import TagsManager from '../components/admin/TagsManager';
 import QuizManager from '../components/admin/QuizManager';
 import { useAdminAuth } from '../components/admin/AdminAuthProvider';
 import { useNavigate } from 'react-router-dom';
+import { checkAdminToken } from '../services/authService';
 
 const AdminPanelPage = () => {
   const { isAuthenticated } = useAdminAuth();
@@ -13,6 +14,18 @@ const AdminPanelPage = () => {
       navigate('/login');
     }
   }, [isAuthenticated, navigate]);
+
+  // Sprawdź ważność tokenu przy wejściu na panel admina
+  useEffect(() => {
+    const verifyToken = async () => {
+      try {
+        await checkAdminToken();
+      } catch (err) {
+        navigate('/login');
+      }
+    };
+    verifyToken();
+  }, []);
 
   const [activeTab, setActiveTab] = useState('therapists');
   const quizManagerRef = useRef();

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { checkAdminToken } from '../../services/authService';
 
 const AdminAuthContext = createContext();
 
@@ -55,6 +56,22 @@ export const AdminAuthProvider = ({ children }) => {
     };
   }, [isAuthenticated]);
 
+  // Odśwież token przy aktywności admina (jeśli jest zalogowany)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const refreshToken = async () => {
+      try {
+        await checkAdminToken('refresh'); // Dodamy obsługę refresh w serwisie
+      } catch (err) {
+        logout(true);
+      }
+    };
+    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart'];
+    const handler = () => refreshToken();
+    events.forEach(event => window.addEventListener(event, handler));
+    return () => events.forEach(event => window.removeEventListener(event, handler));
+  }, [isAuthenticated]);
+
   // Globalna obsługa błędów autoryzacji
   useEffect(() => {
     const handleAuthError = (event) => {
@@ -82,6 +99,19 @@ export const AdminAuthProvider = ({ children }) => {
         logout(true);
       }
     }, 1000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  // Cykliczne sprawdzanie ważności tokenu na backendzie (co 60s)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(async () => {
+      try {
+        await checkAdminToken();
+      } catch (err) {
+        logout(true);
+      }
+    }, 60000); // co 60 sekund
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 

@@ -9,4 +9,13 @@ router.post('/login', loginAdmin);
 // Protected routes
 router.get('/profile', protect, getAdminProfile);
 
-module.exports = router; 
+// Odśwież token (refresh) – generuje nowy token jeśli stary jest ważny
+router.post('/refresh', protect, (req, res) => {
+  const jwt = require('jsonwebtoken');
+  const token = jwt.sign({ role: 'admin' }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN
+  });
+  res.json({ token });
+});
+
+module.exports = router;
