@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react";
-import Welcome from "../quiz/Welcome";
 import { getAllQuizzes, getQuiz, updateQuiz } from "../../services/quizService";
 import { getQuestionsForQuiz, createQuestion, updateQuestion, deleteQuestion } from "../../services/questionService";
 import { createAnswer, updateAnswer, deleteAnswer } from "../../services/answerService";
@@ -613,148 +612,30 @@ const QuizManager = forwardRef((props, ref) => {
   }, [availableTags]);
 
   return (
-    <div className="p-4">
-      {sessionExpired && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
-          Sesja administratora wygasła z powodu braku aktywności. Zaloguj się ponownie.
-        </div>
-      )}
-      <div className="p-4 pb-32">
+    <div className="flex flex-col p-0 min-h-0 h-full">
+      {/* GÓRNA NAWIGACJA I STATUS */}
+      <div className="p-4 pb-2">
         <h2 className="text-2xl font-bold mb-4">Zarządzanie quizem</h2>
-        <div className="mb-6 border rounded-lg p-4 bg-gray-50">
-          <h3 className="font-semibold mb-2">Strona powitalna (nieedytowalna)</h3>
-          <Welcome onStart={() => {}} />
-        </div>
-        {!quiz ? (
-          <div className="mb-6 border rounded-lg p-4 bg-white text-center text-red-600 font-semibold">
-            Quiz nie został jeszcze utworzony. Skontaktuj się z administratorem lub utwórz quiz w backendzie.
+        {/* Info o aktualnie załadowanym drafcie */}
+        {loadedDraft && (
+          <div className="mb-1 text-xs text-gray-500">
+            Wersja: <span className="font-semibold">{loadedDraft.name}</span> • {loadedDraft.author} • {new Date(loadedDraft.createdAt).toLocaleString()}
+            {isPublishedDraft && <span className="ml-2 text-green-600">[opublikowany]</span>}
           </div>
-        ) : draftQuestions.length === 0 ? (
-          <div className="mb-6 border rounded-lg p-4 bg-white text-center">
-            <p className="mb-4 text-gray-500">Brak pytań w quizie. Dodaj pierwsze pytanie!</p>
-            <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={handleAddQuestion}>Dodaj pierwsze pytanie</button>
-          </div>
+        )}
+        {/* Status zmian */}
+        {hasChanges ? (
+          <div className="mb-2 text-orange-600 font-semibold">Masz niezapisane zmiany!</div>
         ) : (
-          <div className="relative">
-            <div ref={scrollContainerRef} style={{ maxHeight: '70vh', overflowY: 'auto', overflowX: 'hidden' }}>
-              {draftQuestions.map((q, idx) => (
-                <div
-                  key={q.id || q.localId}
-                  className="mb-6 border rounded-lg p-4 bg-white transition-shadow select-none hover:bg-blue-50"
-                  style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', userSelect: 'none' }}
-                >
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold">Pytanie {idx + 1}:</h3>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        className="text-red-600 hover:text-red-800 p-1 ml-1 text-2xl font-bold flex items-center justify-center"
-                        onClick={() => handleDeleteQuestion(idx)}
-                        title="Usuń pytanie"
-                        style={{ lineHeight: 1 }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex items-center mb-2">
-                    <div className="flex items-center mr-2">
-                      <button
-                        className="text-blue-500 hover:text-blue-700 p-1"
-                        onClick={() => handleEditQuestion(idx)}
-                        title="Edytuj pytanie"
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="font-bold">{q.text}</div>
-                  </div>
-                  <ul className="list-none ml-0">
-                    {q.answers.map((ans, aIdx) => (
-                      <li key={ans.id || `draft-a-${aIdx}`} className="mb-1 flex items-center">
-                        <div className="flex items-center mr-2">
-                          <button className="text-blue-500 hover:text-blue-700 p-1" onClick={() => handleEditAnswer(idx, aIdx)} title="Edytuj odpowiedź">
-                            <PencilIcon className="h-4 w-4" />
-                          </button>
-                          <button className="text-red-600 hover:text-red-800 p-0 ml-0.5 text-xl font-bold flex items-center justify-center" onClick={() => handleDeleteAnswer(idx, aIdx)} title="Usuń odpowiedź" style={{ lineHeight: 1 }}>
-                            ×
-                          </button>
-                          {/* Strzałki przesuwania odpowiedzi */}
-                          <div className="flex flex-col ml-1">
-                            {aIdx > 0 && (
-                              <button
-                                className="p-0.5 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
-                                title="Przesuń odpowiedź wyżej"
-                                onClick={() => moveAnswer(idx, aIdx, aIdx - 1)}
-                                style={{ fontSize: 14 }}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                              </button>
-                            )}
-                            {aIdx < q.answers.length - 1 && (
-                              <button
-                                className="p-0.5 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center mt-0.5"
-                                title="Przesuń odpowiedź niżej"
-                                onClick={() => moveAnswer(idx, aIdx, aIdx + 1)}
-                                style={{ fontSize: 14 }}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <span className="before:content-['•'] before:mr-2 before:text-gray-400"></span>
-                        <span>{ans.text}</span>
-                        {ans.tags && ans.tags.length > 0 && (
-                          <span className="flex flex-wrap gap-1 ml-2">
-                            {ans.tags.map(tagId => {
-                              const tag = availableTags.find(t => t.id === tagId);
-                              return tag ? (
-                                <span key={tag.id} className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">{tag.name}</span>
-                              ) : null;
-                            })}
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                  <button className="mt-2 px-3 py-1 bg-green-600 text-white rounded" onClick={() => handleAddAnswer(idx)}>Dodaj odpowiedź</button>
-                  {/* Strzałki przesuwania */}
-                  <div className="flex gap-2 justify-end mt-4">
-                    {idx > 0 && (
-                      <button
-                        className="p-1 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
-                        title="Przesuń wyżej"
-                        onClick={() => moveQuestion(idx, idx - 1)}
-                        style={{ fontSize: 18 }}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                      </button>
-                    )}
-                    {idx < draftQuestions.length - 1 && (
-                      <button
-                        className="p-1 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
-                        title="Przesuń niżej"
-                        onClick={() => moveQuestion(idx, idx + 1)}
-                        style={{ fontSize: 18 }}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <div className="mb-2 text-green-700">Wszystkie zmiany zapisane</div>
         )}
         {/* Walidacja */}
         {validationError && (
-          <div className="mt-4 mb-2 text-red-600 font-semibold text-center">{validationError}</div>
+          <div className="mt-2 mb-2 text-red-600 font-semibold text-center">{validationError}</div>
         )}
-        {/* Przyciski na dole */}
+        {/* Przyciski nawigacji */}
         {quiz && draftQuestions.length > 0 && (
-          <div className="flex justify-center gap-4 mt-8 mb-2">
+          <div className="flex justify-center gap-4 mt-8 mb-4 px-4">
             <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={handleAddQuestion}>Dodaj nowe pytanie</button>
             <button
               className={`px-4 py-2 rounded text-white ${!hasChanges ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600'}`}
@@ -764,7 +645,7 @@ const QuizManager = forwardRef((props, ref) => {
               Zapisz zmiany
             </button>
             <button
-              className="px-4 py-2 rounded text-white bg-gray-500"
+              className="px-4 py-2 rounded text-white bg-orange-500 hover:bg-orange-600"
               onClick={() => setShowDraftsList(prev => !prev)}
               disabled={isSaving}
             >
@@ -779,62 +660,175 @@ const QuizManager = forwardRef((props, ref) => {
             </button>
           </div>
         )}
-        {/* Modale */}
-        <EditQuestionModal
-          open={showQModal}
-          onClose={() => setShowQModal(false)}
-          onSave={handleSaveQuestion}
-          initialText={editQIdx !== null && draftQuestions[editQIdx] ? draftQuestions[editQIdx].text : ""}
-        />
-        <EditAnswerModal
-          open={showAModal}
-          onClose={() => setShowAModal(false)}
-          onSave={handleSaveAnswer}
-          initialText={editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.text ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].text : ""}
-          initialTags={
-            editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.tags
-              ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].tags.filter(tagId =>
-                  availableTags.some(tag => tag.id === tagId)
-                )
-              : []
-          }
-          availableTags={availableTags}
-          onAnyChange={() => setIsDraftSaved(false)}
-          onTagsChange={newTags => {
-            if (editAIdx.qIdx !== null && editAIdx.aIdx !== null) {
-              setDraftQuestions(qs => qs.map((q, i) => {
-                if (i !== editAIdx.qIdx) return q;
-                const answers = [...q.answers];
-                if (answers[editAIdx.aIdx]) {
-                  answers[editAIdx.aIdx] = { ...answers[editAIdx.aIdx], tags: newTags };
-                }
-                return { ...q, answers };
-              }));
-            }
-          }}
-        />
-        <SaveDraftModal 
-          open={showSaveDraftModal} 
-          onClose={() => setShowSaveDraftModal(false)} 
-          onSave={handleSaveDraftWithMeta} 
-          loadedDraft={loadedDraft}
-          isPublishedDraft={isPublishedDraft}
-          allDrafts={drafts}
-        />
       </div>
-      {/* Info o aktualnie załadowanym drafcie */}
-      {loadedDraft && (
-        <div className="mb-1 text-xs text-gray-500">
-          Wersja: <span className="font-semibold">{loadedDraft.name}</span> • {loadedDraft.author} • {new Date(loadedDraft.createdAt).toLocaleString()}
-          {isPublishedDraft && <span className="ml-2 text-green-600">[opublikowany]</span>}
-        </div>
-      )}
-      {/* Status zmian */}
-      {hasChanges ? (
-        <div className="mb-2 text-orange-600 font-semibold">Masz niezapisane zmiany!</div>
-      ) : (
-        <div className="mb-2 text-green-700">Wszystkie zmiany zapisane</div>
-      )}
+      {/* PYTANIA - bez osobnego scrolla, całość przewija się razem */}
+      <div className="flex-1 px-4 pb-2">
+        {/* USUNIĘTO STRONĘ POWITALNĄ */}
+        {!quiz ? (
+          <div className="mb-6 border rounded-lg p-4 bg-white text-center text-red-600 font-semibold">
+            Quiz nie został jeszcze utworzony. Skontaktuj się z administratorem lub utwórz quiz w backendzie.
+          </div>
+        ) : draftQuestions.length === 0 ? (
+          <div className="mb-6 border rounded-lg p-4 bg-white text-center">
+            <p className="mb-4 text-gray-500">Brak pytań w quizie. Dodaj pierwsze pytanie!</p>
+            <button className="px-4 py-2 bg-green-600 text-white rounded" onClick={handleAddQuestion}>Dodaj pierwsze pytanie</button>
+          </div>
+        ) : (
+          <div className="relative">
+            {/* USUNIĘTO overflow-y-auto i maxHeight! */}
+            {draftQuestions.map((q, idx) => (
+              <div
+                key={q.id || q.localId}
+                className="mb-6 border rounded-lg p-4 bg-white transition-shadow select-none hover:bg-blue-50"
+                style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', userSelect: 'none' }}
+              >
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold">Pytanie {idx + 1}:</h3>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      className="text-red-600 hover:text-red-800 p-1 ml-1 text-2xl font-bold flex items-center justify-center"
+                      onClick={() => handleDeleteQuestion(idx)}
+                      title="Usuń pytanie"
+                      style={{ lineHeight: 1 }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center mb-2">
+                  <div className="flex items-center mr-2">
+                    <button
+                      className="text-blue-500 hover:text-blue-700 p-1"
+                      onClick={() => handleEditQuestion(idx)}
+                      title="Edytuj pytanie"
+                    >
+                      <PencilIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="font-bold">{q.text}</div>
+                </div>
+                <ul className="list-none ml-0">
+                  {q.answers.map((ans, aIdx) => (
+                    <li key={ans.id || `draft-a-${aIdx}`} className="mb-1 flex items-center">
+                      <div className="flex items-center mr-2">
+                        <button className="text-blue-500 hover:text-blue-700 p-1" onClick={() => handleEditAnswer(idx, aIdx)} title="Edytuj odpowiedź">
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        <button className="text-red-600 hover:text-red-800 p-0 ml-0.5 text-xl font-bold flex items-center justify-center" onClick={() => handleDeleteAnswer(idx, aIdx)} title="Usuń odpowiedź" style={{ lineHeight: 1 }}>
+                          ×
+                        </button>
+                        {/* Strzałki przesuwania odpowiedzi */}
+                        <div className="flex flex-col ml-1">
+                          {aIdx > 0 && (
+                            <button
+                              className="p-0.5 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
+                              title="Przesuń odpowiedź wyżej"
+                              onClick={() => moveAnswer(idx, aIdx, aIdx - 1)}
+                              style={{ fontSize: 14 }}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                            </button>
+                          )}
+                          {aIdx < q.answers.length - 1 && (
+                            <button
+                              className="p-0.5 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center mt-0.5"
+                              title="Przesuń odpowiedź niżej"
+                              onClick={() => moveAnswer(idx, aIdx, aIdx + 1)}
+                              style={{ fontSize: 14 }}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <span className="before:content-['•'] before:mr-2 before:text-gray-400"></span>
+                      <span>{ans.text}</span>
+                      {ans.tags && ans.tags.length > 0 && (
+                        <span className="flex flex-wrap gap-1 ml-2">
+                          {ans.tags.map(tagId => {
+                            const tag = availableTags.find(t => t.id === tagId);
+                            return tag ? (
+                              <span key={tag.id} className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">{tag.name}</span>
+                            ) : null;
+                          })}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <button className="mt-2 px-3 py-1 bg-green-600 text-white rounded" onClick={() => handleAddAnswer(idx)}>Dodaj odpowiedź</button>
+                {/* Strzałki przesuwania */}
+                <div className="flex gap-2 justify-end mt-4">
+                  {idx > 0 && (
+                    <button
+                      className="p-1 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
+                      title="Przesuń wyżej"
+                      onClick={() => moveQuestion(idx, idx - 1)}
+                      style={{ fontSize: 18 }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                    </button>
+                  )}
+                  {idx < draftQuestions.length - 1 && (
+                    <button
+                      className="p-1 rounded bg-gray-200 hover:bg-blue-200 text-gray-700 flex items-center justify-center"
+                      title="Przesuń niżej"
+                      onClick={() => moveQuestion(idx, idx + 1)}
+                      style={{ fontSize: 18 }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {/* Modale */}
+      <EditQuestionModal
+        open={showQModal}
+        onClose={() => setShowQModal(false)}
+        onSave={handleSaveQuestion}
+        initialText={editQIdx !== null && draftQuestions[editQIdx] ? draftQuestions[editQIdx].text : ""}
+      />
+      <EditAnswerModal
+        open={showAModal}
+        onClose={() => setShowAModal(false)}
+        onSave={handleSaveAnswer}
+        initialText={editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.text ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].text : ""}
+        initialTags={
+          editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.tags
+            ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].tags.filter(tagId =>
+                availableTags.some(tag => tag.id === tagId)
+              )
+            : []
+        }
+        availableTags={availableTags}
+        onAnyChange={() => setIsDraftSaved(false)}
+        onTagsChange={newTags => {
+          if (editAIdx.qIdx !== null && editAIdx.aIdx !== null) {
+            setDraftQuestions(qs => qs.map((q, i) => {
+              if (i !== editAIdx.qIdx) return q;
+              const answers = [...q.answers];
+              if (answers[editAIdx.aIdx]) {
+                answers[editAIdx.aIdx] = { ...answers[editAIdx.aIdx], tags: newTags };
+              }
+              return { ...q, answers };
+            }));
+          }
+        }}
+      />
+      <SaveDraftModal 
+        open={showSaveDraftModal} 
+        onClose={() => setShowSaveDraftModal(false)} 
+        onSave={handleSaveDraftWithMeta} 
+        loadedDraft={loadedDraft}
+        isPublishedDraft={isPublishedDraft}
+        allDrafts={drafts}
+      />
       {/* Loader na czas zapisu */}
       {isSaving && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
