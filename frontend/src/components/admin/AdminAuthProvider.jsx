@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { checkAdminToken } from '../../services/authService';
 
 const AdminAuthContext = createContext();
-
 export const useAdminAuth = () => useContext(AdminAuthContext);
-
 const INACTIVITY_LIMIT = 30 * 60 * 1000;
+const ACTIVITY_EVENTS = ['mousemove', 'keydown', 'mousedown', 'touchstart'];
+const REFRESH_DEBOUNCE = 2 * 60 * 1000; // 2 minuty
 
 export const AdminAuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
@@ -16,6 +16,8 @@ export const AdminAuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const timerRef = useRef();
   const popupTimeoutRef = useRef();
+  const refreshTimeoutRef = useRef();
+  const lastRefreshRef = useRef(0);
 
   const logout = useCallback((expired = false) => {
     localStorage.removeItem('token');
@@ -41,18 +43,26 @@ export const AdminAuthProvider = ({ children }) => {
     }, INACTIVITY_LIMIT);
   }, [logout]);
 
+  // Jeden nasłuch na aktywność użytkownika: resetuje timer i debounced refresh token
   useEffect(() => {
     if (!isAuthenticated) return;
-    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart'];
-    const activityHandler = () => resetInactivityTimer();
-    events.forEach(event => window.addEventListener(event, activityHandler));
+    const handleActivity = () => {
+      resetInactivityTimer();
+      const now = Date.now();
+      if (now - lastRefreshRef.current > REFRESH_DEBOUNCE) {
+        lastRefreshRef.current = now;
+        checkAdminToken('refresh').catch(() => logout(true));
+      }
+    };
+    ACTIVITY_EVENTS.forEach(event => window.addEventListener(event, handleActivity));
     resetInactivityTimer();
     return () => {
-      events.forEach(event => window.removeEventListener(event, activityHandler));
+      ACTIVITY_EVENTS.forEach(event => window.removeEventListener(event, handleActivity));
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isAuthenticated, resetInactivityTimer]);
+  }, [isAuthenticated, resetInactivityTimer, logout]);
 
+  // Synchronizacja wylogowania między zakładkami
   useEffect(() => {
     const handleAuthError = (event) => {
       if (event.key === 'admin_force_logout') {
@@ -63,22 +73,14 @@ export const AdminAuthProvider = ({ children }) => {
     return () => window.removeEventListener('storage', handleAuthError);
   }, [logout]);
 
+  // Wyloguj jeśli token zniknie z localStorage
   useEffect(() => {
     if (!localStorage.getItem('token') && isAuthenticated) {
       logout(true);
     }
   }, [isAuthenticated, logout]);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const interval = setInterval(() => {
-      if (!localStorage.getItem('token')) {
-        logout(true);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isAuthenticated, logout]);
-
+  // Cykliczne sprawdzanie ważności tokenu (można wydłużyć interwał)
   useEffect(() => {
     if (!isAuthenticated) return;
     const interval = setInterval(async () => {
@@ -87,23 +89,8 @@ export const AdminAuthProvider = ({ children }) => {
       } catch (err) {
         logout(true);
       }
-    }, 60000);
+    }, 5 * 60 * 1000); // co 5 minut
     return () => clearInterval(interval);
-  }, [isAuthenticated, logout]);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const refreshToken = async () => {
-      try {
-        await checkAdminToken('refresh');
-      } catch (err) {
-        logout(true);
-      }
-    };
-    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart'];
-    const handler = () => refreshToken();
-    events.forEach(event => window.addEventListener(event, handler));
-    return () => events.forEach(event => window.removeEventListener(event, handler));
   }, [isAuthenticated, logout]);
 
   const handleApiAuthError = () => {

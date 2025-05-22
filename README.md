@@ -1,7 +1,7 @@
 # OTherapy – System dopasowywania terapeutów
 
 ## Opis projektu
-Aplikacja webowa wspierająca dopasowanie użytkownika do terapeuty na podstawie quizu. System umożliwia zarządzanie terapeutami, tagami (jeszcze w trakcie rozwoju), quizem oraz posiada panel administracyjny z autoryzacją JWT.
+Aplikacja webowa wspierająca dopasowanie użytkownika do terapeuty na podstawie quizu. System umożliwia zarządzanie terapeutami, tagami, quizem oraz posiada panel administracyjny z autoryzacją JWT.
 
 ## Architektura
 - **auth-service** – logowanie admina, JWT
@@ -16,7 +16,7 @@ Aplikacja webowa wspierająca dopasowanie użytkownika do terapeuty na podstawie
 
 ## Uruchomienie
 1. Zainstaluj zależności w każdym mikroserwisie i frontendzie:
-   ```
+   ```sh
    cd auth-service && npm install
    cd ../therapists-service && npm install
    cd ../tags-service && npm install
@@ -25,7 +25,7 @@ Aplikacja webowa wspierająca dopasowanie użytkownika do terapeuty na podstawie
    ```
 2. Skonfiguruj pliki `.env` (przykładowe są już w repozytorium)
 3. Uruchom każdy mikroserwis i frontend (w osobnych terminalach):
-   ```
+   ```sh
    cd auth-service && npm run dev
    cd therapists-service && npm run dev
    cd tags-service && npm run dev
