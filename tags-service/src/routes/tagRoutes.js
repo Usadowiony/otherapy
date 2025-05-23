@@ -44,29 +44,10 @@ router.put('/api/admin/tags/:tagId', adminAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/admin/tags/:tagId - usuń tag (admin, z walidacją powiązań)
+// DELETE /api/admin/tags/:tagId - usuń tag (admin, bez walidacji powiązań)
 router.delete('/api/admin/tags/:tagId', adminAuth, async (req, res) => {
   const tag = await Tag.findByPk(req.params.tagId);
   if (!tag) return res.status(404).json({ error: 'Tag not found' });
-
-  // --- WALIDACJA: czy tag jest w użyciu? ---
-  try {
-    // Sprawdź powiązania z terapeutami
-    const therapistRes = await fetch(`${process.env.THERAPISTS_SERVICE_URL || 'http://localhost:3001'}/api/tags/${tag.id}/usage`);
-    const therapistUsage = therapistRes.ok ? await therapistRes.json() : [];
-    if (Array.isArray(therapistUsage) && therapistUsage.length > 0) {
-      return res.status(409).json({ error: 'Tag jest przypisany do co najmniej jednego terapeuty. Usuń powiązania przed usunięciem tagu.' });
-    }
-    // Sprawdź powiązania z quizem (pytania/odpowiedzi)
-    const quizRes = await fetch(`${process.env.QUIZZES_SERVICE_URL || 'http://localhost:3004'}/api/tags/${tag.id}/quiz-usage`);
-    const quizUsage = quizRes.ok ? await quizRes.json() : { questions: [], answers: [] };
-    if ((quizUsage.questions && quizUsage.questions.length > 0) || (quizUsage.answers && quizUsage.answers.length > 0)) {
-      return res.status(409).json({ error: 'Tag jest używany w quizie (pytania lub odpowiedzi). Usuń powiązania przed usunięciem tagu.' });
-    }
-  } catch (err) {
-    return res.status(500).json({ error: 'Błąd podczas sprawdzania powiązań tagu: ' + err.message });
-  }
-
   try {
     await tag.destroy();
     res.json({ success: true });
