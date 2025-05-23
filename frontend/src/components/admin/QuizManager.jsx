@@ -50,21 +50,36 @@ const EditAnswerModal = ({ open, onClose, onSave, initialText, initialTags = [],
   const [selectedTags, setSelectedTags] = useState(initialTags);
   const [error, setError] = useState("");
   const [showNoTagsWarning, setShowNoTagsWarning] = useState(false);
+  // --- SENIOR FIX: nie resetuj inputa na zmianę tagów, nawet przy nowych odpowiedziach ---
+  const isFirstMount = useRef(true);
   useEffect(() => {
-    setText(initialText || "");
-    setSelectedTags(initialTags || []);
-    setError("");
-    setShowNoTagsWarning(false);
-  }, [open, initialText, initialTags]);
+    if (isFirstMount.current) {
+      setText(initialText || "");
+      setSelectedTags(initialTags || []);
+      setError("");
+      setShowNoTagsWarning(false);
+      isFirstMount.current = false;
+    }
+    // nie resetuj text na zmiany initialText jeśli modal już otwarty
+    // resetuj tylko przy otwarciu modala
+    // eslint-disable-next-line
+  }, [open]);
 
   const handleTagChange = (tagId) => {
     setSelectedTags((prev) => {
       const newTags = prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId];
       if (onTagsChange) onTagsChange(newTags);
+      setShowNoTagsWarning(false);
+      if (onAnyChange) onAnyChange();
       return newTags;
     });
+    // nie zmieniaj text!
+  };
+
+  const handleTextChange = (e) => {
+    setText(e.target.value);
+    setError("");
     setShowNoTagsWarning(false);
-    if (onAnyChange) onAnyChange();
   };
 
   const handleSave = () => {
@@ -87,6 +102,10 @@ const EditAnswerModal = ({ open, onClose, onSave, initialText, initialTags = [],
     onSave(text, selectedTags);
   };
 
+  useEffect(() => {
+    if (!open) isFirstMount.current = true;
+  }, [open]);
+
   return open ? (
     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded shadow-lg min-w-[300px] max-w-[95vw] w-full" style={{maxWidth: 400}}>
@@ -94,7 +113,7 @@ const EditAnswerModal = ({ open, onClose, onSave, initialText, initialTags = [],
         <input
           className="border p-2 w-full mb-2"
           value={text}
-          onChange={e => { setText(e.target.value); setError(""); setShowNoTagsWarning(false); }}
+          onChange={handleTextChange}
           placeholder="Treść odpowiedzi"
         />
         {error && <div className="text-red-600 text-xs mb-2">{error}</div>}
@@ -113,12 +132,12 @@ const EditAnswerModal = ({ open, onClose, onSave, initialText, initialTags = [],
               </label>
             ))}
           </div>
-          {showNoTagsWarning && (
-            <div className="text-orange-600 text-xs mt-1 flex flex-col gap-2">
-              <span>Zaleca się przypisanie tagów do odpowiedzi (możesz dodać nowe tagi w panelu Tagi).</span>
-            </div>
-          )}
         </div>
+        {showNoTagsWarning && (
+          <div className="text-orange-600 text-xs mt-1 flex flex-col gap-2">
+            <span>Zaleca się przypisanie tagów do odpowiedzi (możesz dodać nowe tagi w panelu Tagi).</span>
+          </div>
+        )}
         <div className="flex gap-2 justify-end mt-4">
           <button className="px-3 py-1 bg-gray-200 rounded" onClick={onClose}>Anuluj</button>
           {showNoTagsWarning ? (
@@ -411,11 +430,16 @@ const QuizManager = forwardRef((props, ref) => {
     setDraftQuestions(qs => qs.filter((_, i) => i !== idx).map((q, i) => ({ ...q, order: i + 1 })));
   };
 
+  // --- SENIOR FIX: Zawsze zamrażaj editAIdx na czas edycji odpowiedzi ---
+  const [modalEditAIdx, setModalEditAIdx] = useState({ qIdx: null, aIdx: null });
+
   const handleAddAnswer = (qIdx) => {
+    setModalEditAIdx({ qIdx, aIdx: draftQuestions[qIdx].answers.length });
     setEditAIdx({ qIdx, aIdx: draftQuestions[qIdx].answers.length });
     setShowAModal(true);
   };
   const handleEditAnswer = (qIdx, aIdx) => {
+    setModalEditAIdx({ qIdx, aIdx });
     setEditAIdx({ qIdx, aIdx });
     setShowAModal(true);
   };
@@ -423,17 +447,19 @@ const QuizManager = forwardRef((props, ref) => {
     if (!text.trim()) return;
     const validTags = (tags || []).filter(tagId => availableTags.some(t => t.id === tagId));
     setDraftQuestions(qs => qs.map((q, i) => {
-      if (i !== editAIdx.qIdx) return q;
+      if (i !== modalEditAIdx.qIdx) return q;
       const answers = [...q.answers];
-      if (editAIdx.aIdx === answers.length) {
+      if (modalEditAIdx.aIdx === answers.length) {
         answers.push({ id: undefined, text, order: answers.length + 1, tags: validTags });
       } else {
-        answers[editAIdx.aIdx] = { ...answers[editAIdx.aIdx], text, tags: validTags };
+        answers[modalEditAIdx.aIdx] = { ...answers[modalEditAIdx.aIdx], text, tags: validTags };
       }
       return { ...q, answers };
     }));
     setIsDraftSaved(false);
     setShowAModal(false);
+    setModalEditAIdx({ qIdx: null, aIdx: null });
+    setEditAIdx({ qIdx: null, aIdx: null });
   };
 
   const handleDeleteAnswer = (qIdx, aIdx) => {
@@ -722,12 +748,16 @@ const QuizManager = forwardRef((props, ref) => {
       />
       <EditAnswerModal
         open={showAModal}
-        onClose={() => setShowAModal(false)}
+        onClose={() => { setShowAModal(false); setModalEditAIdx({ qIdx: null, aIdx: null }); setEditAIdx({ qIdx: null, aIdx: null }); }}
         onSave={handleSaveAnswer}
-        initialText={editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.text ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].text : ""}
+        initialText={
+          modalEditAIdx.qIdx !== null && draftQuestions[modalEditAIdx.qIdx]?.answers[modalEditAIdx.aIdx]?.text !== undefined
+            ? draftQuestions[modalEditAIdx.qIdx].answers[modalEditAIdx.aIdx].text
+            : ""
+        }
         initialTags={
-          editAIdx.qIdx !== null && draftQuestions[editAIdx.qIdx]?.answers[editAIdx.aIdx]?.tags
-            ? draftQuestions[editAIdx.qIdx].answers[editAIdx.aIdx].tags.filter(tagId =>
+          modalEditAIdx.qIdx !== null && draftQuestions[modalEditAIdx.qIdx]?.answers[modalEditAIdx.aIdx]?.tags !== undefined
+            ? draftQuestions[modalEditAIdx.qIdx].answers[modalEditAIdx.aIdx].tags.filter(tagId =>
                 availableTags.some(tag => tag.id === tagId)
               )
             : []
@@ -735,12 +765,12 @@ const QuizManager = forwardRef((props, ref) => {
         availableTags={availableTags}
         onAnyChange={() => setIsDraftSaved(false)}
         onTagsChange={newTags => {
-          if (editAIdx.qIdx !== null && editAIdx.aIdx !== null) {
+          if (modalEditAIdx.qIdx !== null && modalEditAIdx.aIdx !== null) {
             setDraftQuestions(qs => qs.map((q, i) => {
-              if (i !== editAIdx.qIdx) return q;
+              if (i !== modalEditAIdx.qIdx) return q;
               const answers = [...q.answers];
-              if (answers[editAIdx.aIdx]) {
-                answers[editAIdx.aIdx] = { ...answers[editAIdx.aIdx], tags: newTags };
+              if (answers[modalEditAIdx.aIdx]) {
+                answers[modalEditAIdx.aIdx] = { ...answers[modalEditAIdx.aIdx], tags: newTags };
               }
               return { ...q, answers };
             }));
